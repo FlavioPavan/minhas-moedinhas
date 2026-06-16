@@ -10,7 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #020617; } /* bg-slate-950 */
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
     </style>
 </head>
 <body class="text-slate-100">
@@ -19,6 +19,12 @@
     <script>
         const e = React.createElement;
         const useState = React.useState;
+        const useEffect = React.useEffect;
+
+        // ─── CREDENCIAIS DO USUÁRIO PREMIUM ──────────────────────────────────
+        const USUARIO_CORRETO = "flavio";
+        const SENHA_CORRETA = "123";
+        const FOTO_PERFIL_URL = "https://github.com/flaviopavan.png"; // Puxa sua foto do GitHub automaticamente!
 
         const INVESTIMENTOS_DATA = [
             { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investimento mais seguro do país. Você empresta dinheiro para o Governo Federal. Ideal para segurança total e reserva de emergência.", ondeComo: "Qualquer banco ou corretora de valores via Tesouro Direto." },
@@ -30,11 +36,48 @@
         ];
 
         function App() {
+            // Estados de Autenticação
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [usernameInput, setUsernameInput] = useState("");
+            const [passwordInput, setPasswordInput] = useState("");
+            const [loginError, setLoginError] = useState("");
+            const [usuarioLogado, setUsuarioLogado] = useState("");
+
+            // Estados da Carteira
             const [mostrarSaldo, setMostrarSaldo] = useState(true);
             const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
             const [itemSelecionado, setItemSelecionado] = useState(INVESTIMENTOS_DATA[0]);
             const [valorSimulado, setValorSimulado] = useState(1000);
 
+            // Verifica se já existia uma sessão salva ao carregar a página
+            useEffect(() => {
+                const sessionUser = localStorage.getItem("moedinhas_user");
+                if (sessionUser) {
+                    setIsLoggedIn(true);
+                    setUsuarioLogado(sessionUser);
+                }
+            }, []);
+
+            const handleLogin = (eSubmit) => {
+                eSubmit.preventDefault();
+                if (usernameInput.trim().toLowerCase() === USUARIO_CORRETO && passwordInput === SENHA_CORRETA) {
+                    localStorage.setItem("moedinhas_user", usernameInput);
+                    setUsuarioLogado(usernameInput);
+                    setIsLoggedIn(true);
+                    setLoginError("");
+                } else {
+                    setLoginError("Usuário ou senha inválidos.");
+                }
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem("moedinhas_user");
+                setIsLoggedIn(false);
+                setUsernameInput("");
+                setPasswordInput("");
+            };
+
+            // Cálculos matemáticos básicos da dashboard
             const totalSaldo = INVESTIMENTOS_DATA.reduce((acc, item) => acc + item.valor, 0);
             const categorias = ["Todos", "Renda Fixa", "FIIs", "Fundos", "Ações", "Cripto"];
             const listaFiltrada = categoriaFiltro === "Todos" 
@@ -45,8 +88,65 @@
             const rendimentoMensalEstimado = rendimentoAnual / 12;
             const totalFuturo = valorSimulado + rendimentoAnual;
 
+            // Função auxiliar para gerar as iniciais do Nome
+            const getIniciais = (nome) => {
+                if (!nome) return "U";
+                return nome.substring(0, 2).toUpperCase();
+            };
+
+            // ─── TELA DE LOGIN (IF NOT LOGGED IN) ────────────────────────────
+            if (!isLoggedIn) {
+                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
+                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
+                        e("div", { className: "text-center space-y-2" },
+                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 mb-2 text-2xl" }, "🪙"),
+                            e("h1", { className: "text-2xl font-black tracking-tight text-white" }, 
+                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
+                            ),
+                            e("p", { className: "text-sm text-slate-400" }, "Faça login para acessar o seu simulador premium")
+                        ),
+
+                        e("form", { onSubmit: handleLogin, className: "space-y-4" },
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Usuário"),
+                                e("input", {
+                                    type: "text",
+                                    required: true,
+                                    placeholder: "Ex: flavio",
+                                    value: usernameInput,
+                                    onChange: (evt) => setUsernameInput(evt.target.value),
+                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
+                                })
+                            ),
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Senha"),
+                                e("input", {
+                                    type: "password",
+                                    required: true,
+                                    placeholder: "••••••",
+                                    value: passwordInput,
+                                    onChange: (evt) => setPasswordInput(evt.target.value),
+                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
+                                })
+                            ),
+
+                            loginError && e("p", { className: "text-xs font-semibold text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, loginError),
+
+                            e("button", {
+                                type: "submit",
+                                className: "w-full py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition mt-2"
+                            }, "Entrar na Carteira")
+                        ),
+                        e("div", { className: "text-center" },
+                            e("p", { className: "text-[11px] text-slate-500" }, "Dica técnica: use o usuário 'flavio' e senha '123'")
+                        )
+                    )
+                );
+            }
+
+            // ─── DASHBOARD PRINCIPAL (IF LOGGED IN) ──────────────────────────
             return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
-                // Header Escuro
+                // Header customizado com Avatar do Usuário
                 e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
                     e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
                         e("div", { className: "flex items-center gap-2" },
@@ -55,17 +155,36 @@
                                 "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
                             )
                         ),
-                        e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700" }, "v4.0 — Dark Mode Premium")
+                        
+                        // Bloco Personalizado no Canto Direito
+                        e("div", { className: "flex items-center gap-3" },
+                            e("div", { className: "flex items-center gap-2 bg-slate-950 pl-3 pr-1 py-1 rounded-full border border-slate-800" },
+                                e("span", { className: "text-xs font-bold text-slate-300 hidden sm:inline capitalize" }, usuarioLogado),
+                                
+                                // Se for o Flavio, renderiza a imagem real dele. Se for outro, renderiza as iniciais estilizadas.
+                                usuarioLogado.toLowerCase() === USUARIO_CORRETO ?
+                                e("img", { 
+                                    src: FOTO_PERFIL_URL, 
+                                    alt: "Avatar",
+                                    className: "w-8 h-8 rounded-full border border-emerald-500 shadow-sm"
+                                }) :
+                                e("div", { className: "w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs" }, 
+                                    getIniciais(usuarioLogado)
+                                )
+                            ),
+                            e("button", {
+                                onClick: handleLogout,
+                                className: "text-xs font-bold text-slate-400 hover:text-rose-400 p-2 rounded-lg transition"
+                            }, "Sair")
+                        )
                     )
                 ),
 
-                // Conteúdo Principal
+                // Conteúdo Principal da Dashboard
                 e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
-                    
                     // Coluna da Esquerda
                     e("div", { className: "md:col-span-2 space-y-6" },
-                        
-                        // Card de Saldo Premium com Borda sutil
+                        // Card de Saldo Premium
                         e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800" },
                             e("div", { className: "flex justify-between items-center mb-2" },
                                 e("span", { className: "text-sm text-slate-400 font-medium" }, "Patrimônio Total Simulado"),
@@ -80,7 +199,7 @@
                             e("p", { className: "text-xs text-emerald-400 font-medium flex items-center gap-1" }, "📈 Carteira diversificada com os melhores ativos do mercado.")
                         ),
 
-                        // Filtros por Categoria com Estilo Escuro
+                        // Filtros por Categoria
                         e("div", { className: "space-y-2" },
                             e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Filtrar por Tipo"),
                             e("div", { className: "flex flex-wrap gap-2" },
@@ -132,10 +251,9 @@
                         )
                     ),
 
-                    // Coluna da Direita
+                    // Coluna da Direita (Guia Prático + Simulador)
                     e("div", { className: "space-y-6" },
-                        
-                        // Bloco do Guia Prático Escuro
+                        // Bloco do Guia Prático
                         e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4" },
                             e("div", { className: "flex items-center gap-2" },
                                 e("span", { className: "text-xl" }, "💡"),
@@ -161,7 +279,7 @@
                             )
                         ),
 
-                        // Bloco do Simulador Neon / Premium
+                        // Bloco do Simulador
                         e("div", { className: "bg-emerald-950 text-white rounded-3xl p-6 shadow-2xl space-y-4 border border-emerald-800/50 shadow-emerald-950/20" },
                             e("div", { className: "flex items-center gap-2" },
                                 e("span", { className: "text-xl" }, "🧮"),
@@ -177,7 +295,7 @@
                                         type: "number",
                                         value: valorSimulado,
                                         onChange: (evt) => setValorSimulado(Number(evt.target.value)),
-                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
                                     })
                                 )
                             ),
