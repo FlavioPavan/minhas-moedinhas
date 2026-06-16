@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Moedinhas</title>
-    <!-- Bibliotecas para fazer o React funcionar direto no navegador -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Servidores ultra-estáveis (cdnjs) para rodar o React e Babel no navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.12/babel.min.js" crossorigin></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -64,9 +64,9 @@
 
         // ─── DADOS SIMULADOS ──────────────────────────────────────────────────
         const investments = [
-            { id: 1, name: "Tesouro Selic 2027", category: "Renda Fixa", value: 5820.0, change: +2.3, status: "safe", statusLabel: "Seguro", color: "#00C896", bgLight: "#E8FFF7", description: "Acompanha os juros do país. Estável e previsível.", emoji: "🟢" },
-            { id: 2, name: "Fundo Multimercado XP", category: "Fundos", value: 3140.5, change: -0.8, status: "moderate", statusLabel: "Moderado", color: "#FFB800", bgLight: "#FFFBEA", description: "Mistura renda fixa e ações. Pode oscilar um pouco.", emoji: "🟡" },
-            { id: 3, name: "Ações ITUB4", category: "Ações", value: 1980.0, change: -3.1, status: "risky", statusLabel: "Arriscado", color: "#FF5C5C", bgLight: "#FFF0F0", description: "Ações sobem e descem bastante. Para quem aguenta as ondas.", emoji: "🔴" }
+            { id: 1, name: "Tesouro Selic 2027", category: "Renda Fixa", value: 5820.0, change: +2.3, status: "safe", statusLabel: "Seguro", color: "#00C896", bgLight: "#E8FFF7", description: "Acompanha os juros do país. Estável e previsível." },
+            { id: 2, name: "Fundo Multimercado XP", category: "Fundos", value: 3140.5, change: -0.8, status: "moderate", statusLabel: "Moderado", color: "#FFB800", bgLight: "#FFFBEA", description: "Mistura renda fixa e ações. Pode oscilar um pouco." },
+            { id: 3, name: "Ações ITUB4", category: "Ações", value: 1980.0, change: -3.1, status: "risky", statusLabel: "Arriscado", color: "#FF5C5C", bgLight: "#FFF0F0", description: "Ações sobem e descem bastante. Para quem aguenta as ondas." }
         ];
 
         const riskMeterPositions = { safe: 15, moderate: 50, risky: 85 };
@@ -107,7 +107,7 @@
                             <p style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Seu dinheiro guardado</p>
                             <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 12 }}>
                                 <span style={{ fontWeight: 800, fontSize: balanceVisible ? 36 : 32, color: "#fff", letterSpacing: "-1.5px", lineHeight: 1 }}>
-                                    {balanceVisible ? `R$ ${totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "R$ •••••••"}
+                                    {balanceVisible ? "R$ " + totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "R$ •••••••"}
                                 </span>
                                 <button onClick={() => setBalanceVisible(!balanceVisible)} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "#9CA3AF", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
                                     {balanceVisible ? <EyeOffIcon /> : <EyeIcon />}
@@ -129,8 +129,8 @@
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
                                 <h2 style={{ fontWeight: 700, fontSize: 16, color: "#1A1D23" }}>🚦 Farol de Tendências</h2>
                             </div>
-                            <div style={{ background: farol.bg, borderLeft: `4px solid ${farol.color}`, borderRadius: 14, padding: "18px 22px", display: "flex", alignItems: "center", gap: 16 }}>
-                                <div style={{ width: 14, height: 14, borderRadius: "50%", background: farol.color, boxShadow: `0 0 10px ${farol.color}66` }} />
+                            <div style={{ background: farol.bg, borderLeft: "4px solid " + farol.color, borderRadius: 14, padding: "18px 22px", display: "flex", alignItems: "center", gap: 16 }}>
+                                <div style={{ width: 14, height: 14, borderRadius: "50%", background: farol.color, boxShadow: "0 0 10px " + farol.color + "66" }} />
                                 <div>
                                     <p style={{ fontWeight: 700, fontSize: 14, color: "#1A1D23", marginBottom: 3 }}>{farol.label}</p>
                                     <p style={{ fontSize: 13, color: "#4B5563", lineHeight: 1.5 }}>{farol.desc}</p>
@@ -138,7 +138,7 @@
                             </div>
                             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                                 {["safe", "moderate", "risky"].map((s) => (
-                                    <button key={s} onClick={() => setFarolState(s)} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 20, border: `1px solid ${farolConfig[s].color}`, background: farolState === s ? farolConfig[s].color : "transparent", color: farolState === s ? "#fff" : farolConfig[s].color, cursor: "pointer", fontWeight: 600 }}>
+                                    <button key={s} onClick={() => setFarolState(s)} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 20, border: "1px solid " + farolConfig[s].color, background: farolState === s ? farolConfig[s].color : "transparent", color: farolState === s ? "#fff" : farolConfig[s].color, cursor: "pointer", fontWeight: 600 }}>
                                         {farolConfig[s].label.split(" — ")[0]}
                                     </button>
                                 ))}
@@ -155,14 +155,14 @@
                                 </div>
                                 <div style={{ position: "relative", height: 8, borderRadius: 4, background: "linear-gradient(to right, #00C896, #FFB800, #FF5C5C)" }}>
                                     {investments.map((inv) => (
-                                        <div key={inv.id} onClick={() => setActiveCard(activeCard === inv.id ? null : inv.id)} style={{ position: "absolute", top: "50%", left: `${riskMeterPositions[inv.status]}%`, transform: "translate(-50%, -50%)", width: 18, height: 18, borderRadius: "50%", background: inv.color, border: "3px solid #fff", boxShadow: `0 0 0 2px ${inv.color}66`, cursor: "pointer" }} />
+                                        <div key={inv.id} onClick={() => setActiveCard(activeCard === inv.id ? null : inv.id)} style={{ position: "absolute", top: "50%", left: riskMeterPositions[inv.status] + "%", transform: "translate(-50%, -50%)", width: 18, height: 18, borderRadius: "50%", background: inv.color, border: "3px solid #fff", boxShadow: "0 0 0 2px " + inv.color + "66", cursor: "pointer" }} />
                                     ))}
                                 </div>
                             </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 }}>
                                 {investments.map((inv) => (
-                                    <div key={inv.id} onClick={() => setActiveCard(activeCard === inv.id ? null : inv.id)} style={{ background: activeCard === inv.id ? inv.bgLight : "#fff", border: `1.5px solid ${activeCard === inv.id ? inv.color : "#EAECF0"}`, borderRadius: 16, padding: "20px 22px", cursor: "pointer", position: "relative" }}>
+                                    <div key={inv.id} onClick={() => setActiveCard(activeCard === inv.id ? null : inv.id)} style={{ background: activeCard === inv.id ? inv.bgLight : "#fff", border: "1.5px solid " + (activeCard === inv.id ? inv.color : "#EAECF0"), borderRadius: 16, padding: "20px 22px", cursor: "pointer", position: "relative" }}>
                                         <p style={{ fontWeight: 700, fontSize: 15, color: "#1A1D23", marginBottom: 2 }}>{inv.name}</p>
                                         <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 14 }}>{inv.category}</p>
                                         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
