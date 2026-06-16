@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Moedinhas</title>
-    <!-- Nova abordagem para o Favicon (Compatibilidade total com o GitHub Pages) -->
     <link rel="icon" href="https://fav.farm/🪙" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; } /* bg-slate-950 */
     </style>
 </head>
-<body>
+<body class="text-slate-100">
     <div id="root"></div>
 
     <script>
@@ -22,12 +21,12 @@
         const useState = React.useState;
 
         const INVESTIMENTOS_DATA = [
-            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "O investmento mais seguro do país. Você empresta dinheiro para o Governo Federal. Ideal para segurança total e reserva de emergência.", ondeComo: "Qualquer banco ou corretora de valores via Tesouro Direto." },
-            { id: 2, nome: "CDB 110% (Grandes Bancos)", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "Empréstimo para o banco. Possui a proteção do FGC (Fundo Garantidor de Crédito) para valores de até R$ 250 mil por CPF.", ondeComo: "Direto no aplicativo do seu banco digital ou corretora." },
-            { id: 3, nome: "Fundo Imobiliário (FII Grande Shopping)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.85% ao mês", taxaAnual: 0.1020, risco: "Médio", riscoCor: "bg-amber-100 text-amber-800", desc: "Você compra pedacinhos de grandes shoppings ou galpões e recebe uma parte dos aluguéis na sua conta todo mês, livre de Imposto de Renda!", ondeComo: "Comprado na Bolsa (Home Broker) através de códigos como MXRF11, HGLG11 ou XPML11." },
-            { id: 4, nome: "Fundo Multimercado", categoria: "Fundos", valor: 1200.50, rentabilidade: "+7.20% a.a.", taxaAnual: 0.0720, risco: "Médio", riscoCor: "bg-amber-100 text-amber-800", desc: "Gestores profissionais pegam seu dinheiro e distribuem em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas de investimento como XP, BTG ou Inter." },
-            { id: 5, nome: "Ações Itaú / Vale / Petrobras", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-100 text-rose-800", desc: "Seja sócio das maiores empresas do Brasil. Se elas lucrarem, você ganha dividendos; se o mercado tremer, o valor delas oscila.", ondeComo: "Através do Home Broker da sua corretora de preferência." },
-            { id: 6, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-100 text-purple-800", desc: "Moeda digital do futuro. Potencial de lucro explosivo, mas com volatilidade extrema. Coloque apenas uma quantia pequena.", ondeComo: "Corretoras especializadas (Exchanges) ou ETFs de Cripto na Bolsa." }
+            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investimento mais seguro do país. Você empresta dinheiro para o Governo Federal. Ideal para segurança total e reserva de emergência.", ondeComo: "Qualquer banco ou corretora de valores via Tesouro Direto." },
+            { id: 2, nome: "CDB 110% (Grandes Bancos)", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para o banco. Possui a proteção do FGC (Fundo Garantidor de Crédito) para valores de até R$ 250 mil por CPF.", ondeComo: "Direto no aplicativo do seu banco digital ou corretora." },
+            { id: 3, nome: "Fundo Imobiliário (FII Grande Shopping)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.85% ao mês", taxaAnual: 0.1020, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Você compra pedacinhos de grandes shoppings ou galpões e recebe uma parte dos aluguéis na sua conta todo mês, livre de Imposto de Renda!", ondeComo: "Comprado na Bolsa (Home Broker) através de códigos como MXRF11, HGLG11 ou XPML11." },
+            { id: 4, nome: "Fundo Multimercado", categoria: "Fundos", valor: 1200.50, rentabilidade: "+7.20% a.a.", taxaAnual: 0.0720, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Gestores profissionais pegam seu dinheiro e distribuem em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas de investimento como XP, BTG ou Inter." },
+            { id: 5, nome: "Ações Itaú / Vale / Petrobras", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Seja sócio das maiores empresas do Brasil. Se elas lucrarem, você ganha dividendos; se o mercado tremer, o valor delas oscila.", ondeComo: "Através do Home Broker da sua corretora de preferência." },
+            { id: 6, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "Moeda digital do futuro. Potencial de lucro explosivo, mas com volatilidade extrema. Coloque apenas uma quantia pequena.", ondeComo: "Corretoras especializadas (Exchanges) ou ETFs de Cripto na Bolsa." }
         ];
 
         function App() {
@@ -46,83 +45,86 @@
             const rendimentoMensalEstimado = rendimentoAnual / 12;
             const totalFuturo = valorSimulado + rendimentoAnual;
 
-            return e("div", { className: "min-h-screen flex flex-col" },
-                // Header
-                e("header", { className: "bg-white border-b border-slate-200 sticky top-0 z-10" },
+            return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
+                // Header Escuro
+                e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
                     e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
                         e("div", { className: "flex items-center gap-2" },
-                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold shadow-md" }, "🪙"),
-                            e("span", { className: "font-extrabold text-xl text-slate-800" }, 
-                                "Minhas", e("span", { className: "text-emerald-500" }, "Moedinhas")
+                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold shadow-md shadow-emerald-500/20" }, "🪙"),
+                            e("span", { className: "font-extrabold text-xl text-white" }, 
+                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
                             )
                         ),
-                        e("span", { className: "text-xs font-semibold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full" }, "v3.6 — Alinhamento Ajustado")
+                        e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700" }, "v4.0 — Dark Mode Premium")
                     )
                 ),
 
                 // Conteúdo Principal
                 e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
                     
-                    // Coluna da Esquerda (Lista e Filtros)
+                    // Coluna da Esquerda
                     e("div", { className: "md:col-span-2 space-y-6" },
                         
-                        // Card de Saldo
-                        e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden" },
+                        // Card de Saldo Premium com Borda sutil
+                        e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800" },
                             e("div", { className: "flex justify-between items-center mb-2" },
                                 e("span", { className: "text-sm text-slate-400 font-medium" }, "Patrimônio Total Simulado"),
                                 e("button", { 
                                     onClick: () => setMostrarSaldo(!mostrarSaldo),
-                                    className: "text-slate-400 hover:text-white text-xs bg-white/5 px-2.5 py-1.5 rounded-lg"
+                                    className: "text-slate-300 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition border border-slate-700"
                                 }, mostrarSaldo ? "Ocultar Saldo" : "Mostrar Saldo")
                             ),
-                            e("div", { className: "text-3xl font-black tracking-tight mb-2" }, 
+                            e("div", { className: "text-3xl font-black tracking-tight mb-2 text-white" }, 
                                 mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••"
                             ),
-                            e("p", { className: "text-xs text-emerald-400 font-medium" }, "📈 Carteira diversificada com os melhores ativos do mercado.")
+                            e("p", { className: "text-xs text-emerald-400 font-medium flex items-center gap-1" }, "📈 Carteira diversificada com os melhores ativos do mercado.")
                         ),
 
-                        // Filtros por Categoria
+                        // Filtros por Categoria com Estilo Escuro
                         e("div", { className: "space-y-2" },
-                            e("h2", { className: "text-sm font-bold text-slate-700 uppercase tracking-wider" }, "Filtrar por Tipo"),
+                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Filtrar por Tipo"),
                             e("div", { className: "flex flex-wrap gap-2" },
                                 categorias.map(cat => 
                                     e("button", {
                                         key: cat,
                                         onClick: () => setCategoriaFiltro(cat),
-                                        className: `px-4 py-2 rounded-xl text-xs font-bold transition ${
-                                            categoriaFiltro === cat ? "bg-emerald-500 text-white shadow-md" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                        className: `px-4 py-2 rounded-xl text-xs font-bold transition border ${
+                                            categoriaFiltro === cat 
+                                                ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/10" 
+                                                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
                                         }`
                                     }, cat)
                                 )
                             )
                         ),
 
-                        // Grid de Investimentos
+                        // Grid de Investimentos Ajustado e Simétrico
                         e("div", { className: "space-y-3" },
-                            e("h2", { className: "text-sm font-bold text-slate-700 uppercase tracking-wider" }, "Onde o dinheiro está alocado"),
+                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Onde o dinheiro está alocado"),
                             e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
                                 listaFiltrada.map(item => 
                                     e("div", {
                                         key: item.id,
                                         onClick: () => setItemSelecionado(item),
-                                        // Ajustado de h-36 para min-h-[150px] e h-full para garantir alinhamento perfeito mesmo com quebra de linha
-                                        className: `bg-white p-5 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between min-h-[150px] h-full ${
-                                            itemSelecionado.id === item.id ? "border-emerald-500 bg-emerald-50/10 shadow-md" : "border-slate-100 hover:border-slate-200"
+                                        className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between min-h-[150px] h-full ${
+                                            itemSelecionado.id === item.id 
+                                                ? "border-emerald-500 bg-emerald-950/10 shadow-lg shadow-emerald-500/5" 
+                                                : "border-slate-850 bg-slate-900 hover:border-slate-700"
                                         }`
                                     }, 
                                         e("div", { className: "space-y-1" },
                                             e("div", { className: "flex justify-between items-start gap-2" },
-                                                e("h3", { className: "font-bold text-slate-800 text-sm sm:text-base leading-tight flex-1" }, item.nome),
+                                                e("h3", { className: "font-bold text-white text-sm sm:text-base leading-tight flex-1" }, item.nome),
                                                 e("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${item.riscoCor}` }, item.risco)
                                             ),
                                             e("span", { className: "text-xs text-slate-400 font-medium block" }, item.categoria)
                                         ),
-                                        e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-50" },
+                                        e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800/60" },
                                             e("div", null,
                                                 e("span", { className: "text-[10px] text-slate-400 block uppercase font-bold" }, "Valor"),
-                                                e("span", { className: "font-extrabold text-slate-800 text-base" }, `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                                                e("span", { className: "font-extrabold text-white text-base" }, `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
                                             ),
-                                            e("span", { className: "text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg shrink-0" }, item.rentabilidade)
+                                            e("span", { className: "text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg shrink-0 border border-emerald-500/20" }, item.rentabilidade)
                                         )
                                     )
                                 )
@@ -130,59 +132,59 @@
                         )
                     ),
 
-                    // Coluna da Direita (Guia Prático + Simulador Inteligente)
+                    // Coluna da Direita
                     e("div", { className: "space-y-6" },
                         
-                        // Bloco do Guia Prático
-                        e("div", { className: "bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4" },
+                        // Bloco do Guia Prático Escuro
+                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4" },
                             e("div", { className: "flex items-center gap-2" },
                                 e("span", { className: "text-xl" }, "💡"),
-                                e("h2", { className: "font-extrabold text-slate-800 text-lg" }, "Guia Prático")
+                                e("h2", { className: "font-extrabold text-white text-lg" }, "Guia Prático")
                             ),
-                            e("div", { className: "bg-slate-50 rounded-2xl p-4 border border-slate-100" },
-                                e("span", { className: "text-[10px] uppercase font-bold text-slate-400 block mb-1" }, "Selecionado"),
-                                e("h3", { className: "text-base font-black text-slate-800" }, itemSelecionado.nome),
+                            e("div", { className: "bg-slate-950 rounded-2xl p-4 border border-slate-800" },
+                                e("span", { className: "text-[10px] uppercase font-bold text-slate-500 block mb-1" }, "Selecionado"),
+                                e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
                                 e("div", { className: "mt-2 flex gap-2" },
-                                    e("span", { className: "text-xs font-semibold bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-md" }, itemSelecionado.categoria),
+                                    e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md border border-slate-700" }, itemSelecionado.categoria),
                                     e("span", { className: `text-xs font-bold px-2.5 py-0.5 rounded-md ${itemSelecionado.riscoCor}` }, `Risco ${itemSelecionado.risco}`)
                                 )
                             ),
                             e("div", { className: "space-y-3" },
                                 e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
-                                    e("p", { className: "text-sm text-slate-600 leading-relaxed font-medium" }, itemSelecionado.desc)
+                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
+                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.desc)
                                 ),
                                 e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5" }, "Como investir?"),
-                                    e("p", { className: "text-sm text-slate-600 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
+                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "Como investir?"),
+                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
                                 )
                             )
                         ),
 
-                        // Bloco do Simulador de Rendimentos Futuros
-                        e("div", { className: "bg-emerald-900 text-white rounded-3xl p-6 shadow-xl space-y-4 shadow-emerald-900/20" },
+                        // Bloco do Simulador Neon / Premium
+                        e("div", { className: "bg-emerald-950 text-white rounded-3xl p-6 shadow-2xl space-y-4 border border-emerald-800/50 shadow-emerald-950/20" },
                             e("div", { className: "flex items-center gap-2" },
                                 e("span", { className: "text-xl" }, "🧮"),
-                                e("h2", { className: "font-extrabold text-lg" }, "Simulador de Ganhos")
+                                e("h2", { className: "font-extrabold text-lg text-emerald-50" }, "Simulador de Ganhos")
                             ),
                             e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-emerald-300 font-bold uppercase tracking-wider" }, "Quanto quer simular?"),
+                                e("label", { className: "text-xs text-emerald-400 font-bold uppercase tracking-wider" }, "Quanto quer simular?"),
                                 e("div", { className: "relative rounded-xl shadow-sm" },
                                     e("div", { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
-                                        e("span", { className: "text-emerald-600 font-bold text-sm" }, "R$")
+                                        e("span", { className: "text-emerald-500 font-bold text-sm" }, "R$")
                                     ),
                                     e("input", {
                                         type: "number",
                                         value: valorSimulado,
                                         onChange: (evt) => setValorSimulado(Number(evt.target.value)),
-                                        className: "block w-full pl-9 pr-3 py-2.5 bg-emerald-950/40 border border-emerald-700 rounded-xl text-white font-extrabold text-base focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                                     })
                                 )
                             ),
                             
                             itemSelecionado.categoria === "FIIs" ? 
-                            e("div", { className: "pt-3 border-t border-emerald-800 space-y-2" },
-                                e("div", { className: "bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800" },
+                            e("div", { className: "pt-3 border-t border-emerald-800/60 space-y-2" },
+                                e("div", { className: "bg-emerald-900/30 p-2.5 rounded-xl border border-emerald-800" },
                                     e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "💰 Pinga na conta todo mês (Aluguel)"),
                                     e("span", { className: "text-lg font-black text-yellow-300" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
                                 ),
@@ -197,7 +199,7 @@
                                     )
                                 )
                             ) :
-                            e("div", { className: "pt-3 border-t border-emerald-800 grid grid-cols-2 gap-2" },
+                            e("div", { className: "pt-3 border-t border-emerald-800/60 grid grid-cols-2 gap-2" },
                                 e("div", null,
                                     e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Rendimento (1 Ano)"),
                                     e("span", { className: "text-base font-black text-emerald-300" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
@@ -208,7 +210,7 @@
                                 )
                             ),
                             
-                            e("p", { className: "text-[11px] text-emerald-300/80 italic leading-snug" }, 
+                            e("p", { className: "text-[11px] text-emerald-400/70 italic leading-snug" }, 
                                 `Estimativa calculada sobre a taxa de ${itemSelecionado.rentabilidade} recomendada.`
                             )
                         )
@@ -216,7 +218,7 @@
                 ),
 
                 // Footer
-                e("footer", { className: "bg-slate-100 text-center py-4 text-xs text-slate-500 font-medium border-t border-slate-200 mt-8" },
+                e("footer", { className: "bg-slate-900 text-center py-4 text-xs text-slate-500 font-medium border-t border-slate-800 mt-8" },
                     "Minhas Moedinhas © 2026"
                 )
             );
