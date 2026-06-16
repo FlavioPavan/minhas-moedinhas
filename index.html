@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minhas Moedinhas</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22 width=%2216%22 height=%2216%22><text y=%2214%22>🪙</text></svg>">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,30 +17,35 @@
     <div id="root"></div>
 
     <script>
-        // Atalhos para o React não precisar de Babel
+        // Atalhos do React Puro
         const e = React.createElement;
         const useState = React.useState;
 
-        // ─── BASE DE DADOS ──────────────────────────────────────────────────
+        // ─── BASE DE DADOS COM TAXAS ANUAIS PARA O CALCULADOR ───────────────
         const INVESTIMENTOS_DATA = [
-            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", risco: "Muito Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "É o investimento mais seguro do país. Você empresta dinheiro para o Governo em troca de juros. Perfeito para reservas de emergência.", ondeComo: "Disponível em qualquer banco ou corretora via Tesouro Direto." },
-            { id: 2, nome: "CDB Banco 110%", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", risco: "Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "Você empresta para o banco. É protegido pelo FGC (Fundo Garantidor) em até R$ 250 mil caso o banco tenha problemas.", ondeComo: "Direto no app do seu banco ou corretora de preferência." },
-            { id: 3, nome: "Fundo Multimercado", categoria: "Fundos", valor: 3140.50, rentabilidade: "+6.20% no ano", risco: "Médio", riscoCor: "bg-amber-100 text-amber-800", desc: "Um gestor profissional distribui o dinheiro em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas como XP, BTG, Inter ou Nu Invest." },
-            { id: 4, nome: "Ações Itaú (ITUB4)", categoria: "Ações", valor: 1980.00, rentabilidade: "-3.15% mên", risco: "Alto", riscoCor: "bg-rose-100 text-rose-800", desc: "Você se torna sócio da empresa. Se ela lucrar, você ganha; se a bolsa cair, elas desvalorizam temporariamente.", ondeComo: "Comprado no Home Broker usando o código ITUB4." },
-            { id: 5, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% no ano", risco: "Muito Alto", riscoCor: "bg-purple-100 text-purple-800", desc: "Moeda digital descentralizada. Alto potencial de ganho, mas pode variar muito em um único dia. Cuidado e moderação!", ondeComo: "Corretoras de cripto (Exchanges) ou via ETFs na Bolsa." }
+            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "É o investimento mais seguro do país. Você empresta dinheiro para o Governo em troca de juros. Perfeito para reservas de emergência.", ondeComo: "Disponível em qualquer banco ou corretora via Tesouro Direto." },
+            { id: 2, nome: "CDB Banco 110%", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-100 text-emerald-800", desc: "Você empresta para o banco. É protegido pelo FGC (Fundo Garantidor) em até R$ 250 mil caso o banco tenha problemas.", ondeComo: "Direto no app do seu banco ou corretora de preferência." },
+            { id: 3, nome: "Fundo Multimercado", categoria: "Fundos", valor: 3140.50, rentabilidade: "+7.20% a.a.", taxaAnual: 0.0720, risco: "Médio", riscoCor: "bg-amber-100 text-amber-800", desc: "Um gestor profissional distribui o dinheiro em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas como XP, BTG, Inter ou Nu Invest." },
+            { id: 4, nome: "Ações Itaú (ITUB4)", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-100 text-rose-800", desc: "Você se torna sócio da empresa. Se ela lucrar, você ganha; se a bolsa cair, elas desvalorizam temporariamente.", ondeComo: "Comprado no Home Broker usando o código ITUB4." },
+            { id: 5, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-100 text-purple-800", desc: "Moeda digital descentralizada. Alto potencial de ganho, mas pode variar muito em um único dia. Cuidado e moderação!", ondeComo: "Corretoras de cripto (Exchanges) ou via ETFs na Bolsa." }
         ];
 
-        // ─── COMPONENTE PRINCIPAL (EM RECT PURO) ───────────────────────────
+        // ─── COMPONENTE PRINCIPAL ───────────────────────────────────────────
         function App() {
             const [mostrarSaldo, setMostrarSaldo] = useState(true);
             const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
             const [itemSelecionado, setItemSelecionado] = useState(INVESTIMENTOS_DATA[0]);
+            const [valorSimulado, setValorSimulado] = useState(1000); // Valor padrão inicial do simulador
 
             const totalSaldo = INVESTIMENTOS_DATA.reduce((acc, item) => acc + item.valor, 0);
             const categorias = ["Todos", "Renda Fixa", "Fundos", "Ações", "Cripto"];
             const listaFiltrada = categoriaFiltro === "Todos" 
                 ? INVESTIMENTOS_DATA 
                 : INVESTIMENTOS_DATA.filter(i => i.categoria === categoriaFiltro);
+
+            // Cálculo do Simulador
+            const rendimentoFuturo = valorSimulado * itemSelecionado.taxaAnual;
+            const totalFuturo = valorSimulado + rendimentoFuturo;
 
             return e("div", { className: "min-h-screen flex flex-col" },
                 // Header
@@ -51,14 +57,14 @@
                                 "Minhas", e("span", { className: "text-emerald-500" }, "Moedinhas")
                             )
                         ),
-                        e("span", { className: "text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full" }, "v2.5 — À prova de falhas")
+                        e("span", { className: "text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full" }, "v3.0 — Simulador Ativo")
                     )
                 ),
 
                 // Conteúdo Principal
                 e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
                     
-                    // Coluna da Esquerda (Saldo, Filtros e Cards)
+                    // Coluna da Esquerda (Saldo, Filtros e Ativos)
                     e("div", { className: "md:col-span-2 space-y-6" },
                         
                         // Card de Saldo
@@ -124,14 +130,16 @@
                         )
                     ),
 
-                    // Coluna da Direita (Painel Educativo)
-                    e("div", { className: "bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between" },
-                        e("div", null,
-                            e("div", { className: "flex items-center gap-2 mb-4" },
+                    // Coluna da Direita (Guia Prático + NOVO SIMULADOR DE RENDIMENTOS)
+                    e("div", { className: "space-y-6" },
+                        
+                        // Bloco do Guia Prático
+                        e("div", { className: "bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4" },
+                            e("div", { className: "flex items-center gap-2" },
                                 e("span", { className: "text-xl" }, "💡"),
                                 e("h2", { className: "font-extrabold text-slate-800 text-lg" }, "Guia Prático")
                             ),
-                            e("div", { className: "bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-4" },
+                            e("div", { className: "bg-slate-50 rounded-2xl p-4 border border-slate-100" },
                                 e("span", { className: "text-[10px] uppercase font-bold text-slate-400 block mb-1" }, "Selecionado"),
                                 e("h3", { className: "text-base font-black text-slate-800" }, itemSelecionado.nome),
                                 e("div", { className: "mt-2 flex gap-2" },
@@ -139,19 +147,52 @@
                                     e("span", { className: `text-xs font-bold px-2.5 py-0.5 rounded-md ${itemSelecionado.riscoCor}` }, `Risco ${itemSelecionado.risco}`)
                                 )
                             ),
-                            e("div", { className: "space-y-4" },
+                            e("div", { className: "space-y-3" },
                                 e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-1" }, "O que significa na prática?"),
+                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
                                     e("p", { className: "text-sm text-slate-600 leading-relaxed font-medium" }, itemSelecionado.desc)
                                 ),
                                 e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-1" }, "Como investir?"),
+                                    e("h4", { className: "text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5" }, "Como investir?"),
                                     e("p", { className: "text-sm text-slate-600 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
                                 )
                             )
                         ),
-                        e("div", { className: "mt-8 border-t border-slate-100 pt-4 text-center" },
-                            e("p", { className: "text-xs text-slate-400 font-medium" }, "Clique nos investimentos para alternar a explicação.")
+
+                        // Bloco Inovador: Simulador Inteligente de 1 Ano
+                        e("div", { className: "bg-emerald-900 text-white rounded-3xl p-6 shadow-xl space-y-4 relative overflow-hidden" },
+                            e("div", { className: "absolute bottom-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-xl -mb-6 -mr-6" }),
+                            e("div", { className: "flex items-center gap-2" },
+                                e("span", { className: "text-xl" }, "🧮"),
+                                e("h2", { className: "font-extrabold text-lg" }, "Simulador: Daqui a 1 Ano")
+                            ),
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-emerald-300 font-bold uppercase tracking-wider" }, "Quanto quer colocar aqui?"),
+                                e("div", { className: "relative rounded-xl shadow-sm" },
+                                    e("div", { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
+                                        e("span", { className: "text-emerald-600 font-bold text-sm" }, "R$")
+                                    ),
+                                    e("input", {
+                                        type: "number",
+                                        value: valorSimulado,
+                                        onChange: (evt) => setValorSimulado(Number(evt.target.value)),
+                                        className: "block w-full pl-9 pr-3 py-2.5 bg-emerald-950/40 border border-emerald-700 rounded-xl text-white font-extrabold text-base focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder-emerald-500"
+                                    })
+                                )
+                            ),
+                            e("div", { className: "pt-3 border-t border-emerald-800 grid grid-cols-2 gap-2" },
+                                e("div", null,
+                                    e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Só de Rendimento"),
+                                    e("span", { className: "text-base font-black text-emerald-300" }, `+ R$ ${rendimentoFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                                ),
+                                e("div", null,
+                                    e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Total no Final"),
+                                    e("span", { className: "text-base font-black text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                                )
+                            ),
+                            e("p", { className: "text-[11px] text-emerald-300/80 italic leading-snug" }, 
+                                `Simulação baseada na rentabilidade anual de ${itemSelecionado.rentabilidade} do ativo ativo selecionado acima.`
+                            )
                         )
                     )
                 ),
@@ -163,7 +204,7 @@
             );
         }
 
-        // Renderização limpa e direta
+        // Renderização direta
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(e(App));
     </script>
