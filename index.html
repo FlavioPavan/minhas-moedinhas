@@ -31,6 +31,7 @@
 
       const calcular = () => {
         const v = parseFloat(valor);
+        if (!v) return;
         setSimulacao({
           fiis: (v * 0.4).toFixed(2),
           rendaFixa: (v * 0.5).toFixed(2),
@@ -50,9 +51,9 @@
             </div>
             {simulacao && (
               <div className="mt-4 p-4 bg-slate-900 rounded-lg text-sm grid grid-cols-3 gap-2 text-center">
-                <div><p className="text-slate-400">FIIs</p><p className="font-bold">R$ {simulacao.fiis}</p></div>
-                <div><p className="text-slate-400">Renda Fixa</p><p className="font-bold">R$ {simulacao.rendaFixa}</p></div>
-                <div><p className="text-slate-400">Ações</p><p className="font-bold">R$ {simulacao.acoes}</p></div>
+                <div><p className="text-slate-400">FIIs (40%)</p><p className="font-bold text-emerald-400">R$ {simulacao.fiis}</p></div>
+                <div><p className="text-slate-400">Renda Fixa (50%)</p><p className="font-bold text-emerald-400">R$ {simulacao.rendaFixa}</p></div>
+                <div><p className="text-slate-400">Ações (10%)</p><p className="font-bold text-emerald-400">R$ {simulacao.acoes}</p></div>
               </div>
             )}
           </div>
@@ -71,7 +72,7 @@
               <div className="bg-slate-800 p-6 rounded-2xl max-w-sm border border-slate-600">
                 <h3 className="text-xl font-bold text-emerald-400 mb-2">{modal.titulo}</h3>
                 <p>{modal.texto}</p>
-                <button className="mt-4 w-full bg-slate-700 py-2 rounded-lg">Entendi</button>
+                <button className="mt-4 w-full bg-slate-700 py-2 rounded-lg" onClick={() => setModal(null)}>Entendi</button>
               </div>
             </div>
           )}
