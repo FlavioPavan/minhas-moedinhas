@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Moedinhas</title>
+    <title>Minhas Moedinhas v6.0</title>
     <link rel="icon" href="https://fav.farm/🪙" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
     </style>
 </head>
 <body class="text-slate-100">
@@ -21,368 +24,208 @@
         const useState = React.useState;
         const useEffect = React.useEffect;
 
-        const USUARIO_CORRETO = "flavio";
-        const SENHA_CORRETA = "123";
-        const FOTO_PERFIL_URL = "https://github.com/flaviopavan.png";
+        // Captura automática de chaves via URL ou LocalStorage para o GitHub Pages
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlBanco = urlParams.get('url') || localStorage.getItem('db_url') || "";
+        const keyBanco = urlParams.get('key') || localStorage.getItem('db_key') || "";
 
-        // ─── DATASET EXPANDIDO (3 ITENS POR CATEGORIA) ───────────────────────
-        const INVESTIMENTOS_DATA = [
-            // TESOURO DIRETO
-            { id: 1, nome: "Tesouro Selic 2027", categoria: "Tesouro Direto", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investimento mais seguro do país. Ideal para reserva de emergência.", ondeComo: "Qualquer banco ou corretora via Tesouro Direto.", graficos: { "1D": "0,25 20,24 40,23 60,24 80,25 100,26", "5D": "0,20 20,22 40,23 60,25 80,24 100,26", "1M": "0,25 20,20 40,18 60,15 80,12 100,5", "6M": "0,28 20,22 40,18 60,14 80,8 100,2" } },
-            { id: 2, nome: "Tesouro IPCA+ 2029", categoria: "Tesouro Direto", valor: 1500.00, rentabilidade: "+6.20% + IPCA", taxaAnual: 0.1120, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Garante que seu dinheiro sempre ganhará da inflação oficial do país.", ondeComo: "Plataforma do Tesouro Direto na sua corretora.", graficos: { "1D": "0,15 20,16 40,15 60,16 80,15 100,14", "5D": "0,18 20,15 40,12 60,14 80,13 100,10", "1M": "0,25 20,22 40,18 60,12 80,10 100,6", "6M": "0,29 20,24 40,20 60,15 80,10 100,4" } },
-            { id: 3, nome: "Tesouro Pré-fixado 2026", categoria: "Tesouro Direto", valor: 2000.00, rentabilidade: "+11.40% a.a.", taxaAnual: 0.1140, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Você sabe exatamente quanto vai receber no dia do resgate desde o primeiro dia.", ondeComo: "Disponível no app da sua corretora de valores.", graficos: { "1D": "0,10 20,11 40,10 60,12 80,11 100,10", "5D": "0,12 20,14 40,15 60,12 80,11 100,9", "1M": "0,20 20,18 40,15 60,14 80,10 100,8", "6M": "0,26 20,22 40,19 60,15 80,12 100,6" } },
-            
-            // CDB / CDI
-            { id: 4, nome: "CDB 110% Liquidez Diária", categoria: "CDB / CDI", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para bancos de médio porte com garantia do FGC até R$250mil.", ondeComo: "Direto no app de bancos digitais como Inter ou Nu.", graficos: { "1D": "0,25 20,24 40,24 60,24 80,25 100,25", "5D": "0,22 20,23 40,24 60,24 80,25 100,25", "1M": "0,25 20,22 40,20 60,18 80,14 100,10", "6M": "0,28 20,24 40,20 60,16 80,10 100,5" } },
-            { id: 5, nome: "CDB Banco Master 120%", categoria: "CDB / CDI", valor: 1800.00, rentabilidade: "+12.60% a.a.", taxaAnual: 0.1260, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Rendimento maior, porém o dinheiro precisa ficar travado por 1 ano.", ondeComo: "Seção de renda fixa em grandes corretoras (XP/BTG).", graficos: { "1D": "0,20 20,20 40,20 60,20 80,20 100,20", "5D": "0,18 20,19 40,19 60,20 80,20 100,19", "1M": "0,22 20,20 40,18 60,15 80,12 100,8", "6M": "0,27 20,22 40,17 60,13 80,9 100,3" } },
-            { id: 6, nome: "CDI Fixo Conta 100%", categoria: "CDB / CDI", valor: 900.00, rentabilidade: "+10.40% a.a.", taxaAnual: 0.1040, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Rendimento automático da conta corrente de alguns bancos digitais.", ondeComo: "Basta deixar o dinheiro parado na conta digital ativa.", graficos: { "1D": "0,28 20,28 40,27 60,27 80,27 100,26", "5D": "0,26 20,26 40,26 60,26 80,26 100,25", "1M": "0,27 20,24 40,22 60,20 80,18 100,16", "6M": "0,29 20,26 40,24 60,22 80,20 100,18" } },
+        if (urlParams.get('url')) localStorage.setItem('db_url', urlParams.get('url'));
+        if (urlParams.get('key')) localStorage.setItem('db_key', urlParams.get('key'));
 
-            // LCI / LCA
-            { id: 7, nome: "LCA Banco do Brasil", categoria: "LCI / LCA", valor: 3200.00, rentabilidade: "+9.20% a.a.", taxaAnual: 0.0920, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Letra de Crédito do Agronegócio. O melhor: ISENTO de Imposto de Renda.", ondeComo: "Disponível no aplicativo do Banco do Brasil.", graficos: { "1D": "0,25 20,25 40,24 60,24 80,24 100,23", "5D": "0,24 20,24 40,23 60,23 80,22 100,21", "1M": "0,25 20,22 40,19 60,17 80,15 100,13", "6M": "0,28 20,24 40,20 60,17 80,14 100,11" } },
-            { id: 8, nome: "LCI Caixa Econômica", categoria: "LCI / LCA", valor: 1100.00, rentabilidade: "+9.10% a.a.", taxaAnual: 0.0910, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Letra de Crédito Imobiliário. Dinheiro usado para financiar moradias, sem IR.", ondeComo: "Seção de investimentos da Caixa.", graficos: { "1D": "0,26 20,25 40,25 60,24 80,24 100,24", "5D": "0,25 20,24 40,23 60,23 80,22 100,22", "1M": "0,26 20,23 40,21 60,19 80,16 100,14", "6M": "0,29 20,25 40,22 60,19 80,15 100,12" } },
-            { id: 9, nome: "LCA Banco Inter 95%", categoria: "LCI / LCA", valor: 2150.00, rentabilidade: "+9.85% a.a.", taxaAnual: 0.0985, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Isento de IR com liquidez após o prazo mínimo de 90 dias.", ondeComo: "Aba de investimentos do app Inter.", graficos: { "1D": "0,22 20,22 40,21 60,21 80,21 100,20", "5D": "0,21 20,20 40,19 60,19 80,18 100,17", "1M": "0,23 20,20 40,17 60,15 80,12 100,9", "6M": "0,27 20,22 40,18 60,14 80,10 100,6" } },
+        let supabaseClient = null;
+        if (urlBanco && keyBanco) {
+            supabaseClient = supabase.createClient(urlBanco, keyBanco);
+        }
 
-            // FIIS
-            { id: 10, nome: "KNCR11 (Fundo de Crítico)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.95% ao mês", taxaAnual: 0.1140, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Fundo focado em títulos de dívidas imobiliárias indexadas ao CDI. Super estável.", ondeComo: "Comprado na Bolsa via Home Broker com o código KNCR11.", graficos: { "1D": "0,20 20,18 40,19 60,17 80,18 100,16", "5D": "0,22 20,19 40,21 60,18 80,17 100,15", "1M": "0,24 20,20 40,17 60,15 80,11 100,8", "6M": "0,27 20,22 40,16 60,12 80,8 100,4" } },
-            { id: 11, nome: "BTLG11 (Galpões Logísticos)", categoria: "FIIs", valor: 1400.00, rentabilidade: "+0.82% ao mês", taxaAnual: 0.0984, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Dono de galpões alugados para gigantes como Amazon e Mercado Livre.", ondeComo: "Bolsa de Valores através do código BTLG11.", graficos: { "1D": "0,15 20,18 40,14 60,16 80,12 100,15", "5D": "0,18 20,12 40,15 60,11 80,14 100,9", "1M": "0,22 20,18 40,13 60,16 80,11 100,7", "6M": "0,26 20,20 40,15 60,11 80,7 100,5" } },
-            { id: 12, nome: "XPML11 (Shopping Centers)", categoria: "FIIs", valor: 2200.00, rentabilidade: "+0.85% ao mês", taxaAnual: 0.1020, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Você recebe parte dos aluguéis de grandes shoppings do Brasil todo mês.", ondeComo: "Bolsa de Valores através do código XPML11.", graficos: { "1D": "0,18 20,15 40,16 60,14 80,15 100,13", "5D": "0,16 20,19 40,14 60,15 80,11 100,12", "1M": "0,20 20,16 40,18 60,13 80,9 100,6", "6M": "0,25 20,19 40,14 60,10 80,6 100,3" } },
-
-            // AÇÕES
-            { id: 13, nome: "Itaú Unibanco (ITUB4)", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "O banco mais lucrativo do hemisfério sul. Excelente pagador de dividendos.", ondeComo: "Home Broker de qualquer corretora digitando ITUB4.", graficos: { "1D": "0,22 20,10 40,25 60,5 80,18 100,12", "5D": "0,28 20,14 40,22 60,8 80,16 100,5", "1M": "0,25 20,18 40,12 60,20 80,10 100,4", "6M": "0,29 20,24 40,15 60,18 80,8 100,2" } },
-            { id: 14, nome: "Vale S.A. (VALE3)", categoria: "Ações", valor: 1200.00, rentabilidade: "+11.20% a.a.", taxaAnual: 0.1120, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Uma das maiores mineradoras do mundo. Depende do preço do minério de ferro na China.", ondeComo: "Bolsa de Valores digitando o código VALE3.", graficos: { "1D": "0,5 20,25 40,12 60,22 80,10 100,18", "5D": "0,12 20,5 40,20 60,14 80,25 100,16", "1M": "0,20 20,14 40,25 60,10 80,18 100,11", "6M": "0,26 20,18 40,22 60,12 80,15 100,7" } },
-            { id: 15, nome: "Petrobras (PETR4)", categoria: "Ações", valor: 1450.00, rentabilidade: "+16.80% a.a.", taxaAnual: 0.1680, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "Gigante do petróleo. Lucros brutais, mas sofre muita interferência política.", ondeComo: "Bolsa de Valores com o código PETR4.", graficos: { "1D": "0,18 20,5 40,28 60,12 80,22 100,10", "5D": "0,22 20,14 40,5 60,25 80,12 100,18", "1M": "0,24 20,18 40,12 60,28 80,15 100,6", "6M": "0,28 20,22 40,16 60,24 80,10 100,3" } },
-
-            // CRIPTO
-            { id: 16, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "A maior moeda digital do mundo. Escassa, descentralizada e global.", ondeComo: "Corretoras de cripto (Binance/Mynt) ou ETF 'HASH11' na Bolsa.", graficos: { "1D": "0,28 20,5 40,25 60,2 85,22 100,14", "5D": "0,5 20,28 40,12 60,25 80,4 100,18", "1M": "0,25 20,12 40,28 60,8 80,22 100,5", "6M": "0,29 20,22 40,14 60,28 80,6 100,1" } },
-            { id: 17, nome: "Ethereum (ETH)", categoria: "Cripto", valor: 500.00, rentabilidade: "+38.50% a.a.", taxaAnual: 0.3850, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "A maior rede de contratos inteligentes do planeta. Funciona como o 'computador do mundo'.", ondeComo: "Corretoras especializadas ou ETF 'QETH11' na Bolsa.", graficos: { "1D": "0,20 20,2 40,28 60,14 80,25 100,12", "5D": "0,14 20,24 40,8 60,29 80,15 100,20", "1M": "0,22 20,15 40,26 60,10 80,24 100,8", "6M": "0,27 20,20 40,16 60,29 80,12 100,4" } },
-            { id: 18, nome: "Solana (SOL)", categoria: "Cripto", valor: 300.00, rentabilidade: "+55.20% a.a.", taxaAnual: 0.5520, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "Rede cripto ultra-veloz com taxas de transações quase zeradas. Altíssimo risco.", ondeComo: "Disponível nas principais exchanges de criptomoedas.", graficos: { "1D": "0,5 20,28 40,2 60,24 80,8 100,18", "5D": "0,25 20,2 40,29 60,10 80,26 100,14", "1M": "0,20 20,29 40,12 60,25 80,6 100,15", "6M": "0,28 20,22 40,29 60,15 80,24 100,2" } }
+        const DATASET_PADRAO = [
+            { nome: "Tesouro Selic 2027", categoria: "Tesouro Direto", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investmento mais seguro do país. Ideal para reserva de emergência.", ondeComo: "Qualquer banco ou corretora via Tesouro Direto.", graficos: { "1D": "0,25 20,24 40,23 60,24 80,25 100,26", "5D": "0,20 20,22 40,23 60,25 80,24 100,26", "1M": "0,25 20,20 40,18 60,15 80,12 100,5", "6M": "0,28 20,22 40,18 60,14 80,8 100,2" } },
+            { nome: "CDB 110% Liquidez Diária", categoria: "CDB / CDI", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para bancos de médio porte com garantia do FGC até R$250mil.", ondeComo: "Direto no app de bancos digitais como Inter ou Nu.", graficos: { "1D": "0,25 20,24 40,24 60,24 80,25 100,25", "5D": "0,22 20,23 40,24 60,24 80,25 100,25", "1M": "0,25 20,22 40,20 60,18 80,14 100,10", "6M": "0,28 20,24 40,20 60,16 80,10 100,5" } },
+            { nome: "LCA Banco do Brasil", categoria: "LCI / LCA", valor: 3200.00, rentabilidade: "+9.20% a.a.", taxaAnual: 0.0920, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Letra de Crédito do Agronegócio. ISENTO de Imposto de Renda.", ondeComo: "Disponível no aplicativo do Banco do Brasil.", graficos: { "1D": "0,25 20,25 40,24 60,24 80,24 100,23", "5D": "0,24 20,24 40,23 60,23 80,22 100,21", "1M": "0,25 20,22 40,19 60,17 80,15 100,13", "6M": "0,28 20,24 40,20 60,17 80,14 100,11" } },
+            { nome: "KNCR11 (Fundo de Crítico)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.95% ao mês", taxaAnual: 0.1140, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Fundo focado em títulos de dívidas imobiliárias indexadas ao CDI.", ondeComo: "Comprado na Bolsa via Home Broker com o código KNCR11.", graficos: { "1D": "0,20 20,18 40,19 60,17 80,18 100,16", "5D": "0,22 20,19 40,21 60,18 80,17 100,15", "1M": "0,24 20,20 40,17 60,15 80,11 100,8", "6M": "0,27 20,22 40,16 60,12 80,8 100,4" } },
+            { nome: "Itaú Unibanco (ITUB4)", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Excelente pagador de dividendos.", ondeComo: "Home Broker de qualquer corretora digitando ITUB4.", graficos: { "1D": "0,22 20,10 40,25 60,5 80,18 100,12", "5D": "0,28 20,14 40,22 60,8 80,16 100,5", "1M": "0,25 20,18 40,12 60,20 80,10 100,4", "6M": "0,29 20,24 40,15 60,18 80,8 100,2" } },
+            { nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "A maior moeda digital do mundo. Escassa e descentralizada.", ondeComo: "Corretoras de cripto (Binance/Mynt) ou ETF 'HASH11' na Bolsa.", graficos: { "1D": "0,28 20,5 40,25 60,2 85,22 100,14", "5D": "0,5 20,28 40,12 60,25 80,4 100,18", "1M": "0,25 20,12 40,28 60,8 80,22 100,5", "6M": "0,29 20,22 40,14 60,28 80,6 100,1" } }
         ];
 
         function App() {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [usernameInput, setUsernameInput] = useState("");
-            const [passwordInput, setPasswordInput] = useState("");
-            const [loginError, setLoginError] = useState("");
-            const [usuarioLogado, setUsuarioLogado] = useState("");
-
-            const [mostrarSaldo, setMostrarSaldo] = useState(true);
-            const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
-            const [itemSelecionado, setItemSelecionado] = useState(INVESTIMENTOS_DATA[0]);
-            const [valorSimulado, setValorSimulado] = useState(1000);
-            
-            // Estado do filtro do período do gráfico lateral
-            const [periodoGrafico, setPeriodoGrafico] = useState("1M");
-
-            useEffect(() => {
-                const sessionUser = localStorage.getItem("moedinhas_user");
-                if (sessionUser) {
-                    setIsLoggedIn(true);
-                    setUsuarioLogado(sessionUser);
-                }
-            }, []);
-
-            const handleLogin = (eSubmit) => {
-                eSubmit.preventDefault();
-                if (usernameInput.trim().toLowerCase() === USUARIO_CORRETO && passwordInput === SENHA_CORRETA) {
-                    localStorage.setItem("moedinhas_user", usernameInput);
-                    setUsuarioLogado(usernameInput);
-                    setIsLoggedIn(true);
-                    setLoginError("");
-                } else {
-                    setLoginError("Usuário ou senha inválidos.");
-                }
-            };
-
-            const handleLogout = () => {
-                localStorage.removeItem("moedinhas_user");
-                setIsLoggedIn(false);
-                setUsernameInput("");
-                setPasswordInput("");
-            };
-
-            const totalSaldo = INVESTIMENTOS_DATA.reduce((acc, item) => acc + item.valor, 0);
-            const categorias = ["Todos", "Tesouro Direto", "CDB / CDI", "LCI / LCA", "FIIs", "Ações", "Cripto"];
-            
-            const listaFiltrada = categoriaFiltro === "Todos" 
-                ? INVESTIMENTOS_DATA 
-                : INVESTIMENTOS_DATA.filter(i => i.categoria === categoriaFiltro);
-
-            const rendimentoAnual = valorSimulado * itemSelecionado.taxaAnual;
-            const rendimentoMensalEstimado = rendimentoAnual / 12;
-            const totalFuturo = valorSimulado + rendimentoAnual;
-
-            const getIniciais = (nome) => {
-                if (!nome) return "U";
-                return nome.substring(0, 2).toUpperCase();
-            };
-
-            // ─── TELA DE LOGIN ───────────────────────────────────────────────
-            if (!isLoggedIn) {
-                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
-                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
-                        e("div", { className: "text-center space-y-2" },
-                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 mb-2 text-2xl" }, "🪙"),
-                            e("h1", { className: "text-2xl font-black tracking-tight text-white" }, 
-                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
-                            ),
-                            e("p", { className: "text-sm text-slate-400" }, "Faça login para acessar o seu simulador premium")
-                        ),
-                        e("form", { onSubmit: handleLogin, className: "space-y-4" },
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Usuário"),
-                                e("input", {
-                                    type: "text",
-                                    required: true,
-                                    placeholder: "Ex: flavio",
-                                    value: usernameInput,
-                                    onChange: (evt) => setUsernameInput(evt.target.value),
-                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
-                                })
-                            ),
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Senha"),
-                                e("input", {
-                                    type: "password",
-                                    required: true,
-                                    placeholder: "••••••",
-                                    value: passwordInput,
-                                    onChange: (evt) => setPasswordInput(evt.target.value),
-                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
-                                })
-                            ),
-                            loginError && e("p", { className: "text-xs font-semibold text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, loginError),
-                            e("button", {
-                                type: "submit",
-                                className: "w-full py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition mt-2"
-                            }, "Entrar na Carteira")
-                        ),
-                        e("div", { className: "text-center" },
-                            e("p", { className: "text-[11px] text-slate-500" }, "Dica técnica: use o usuário 'flavio' e senha '123'")
+            if (!supabaseClient) {
+                return e("div", { className: "min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 text-center" },
+                    e("div", { className: "max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4" },
+                        e("span", { className: "text-4xl" }, "🔑"),
+                        e("h1", { className: "text-xl font-bold text-white" }, "Configuração do Banco Pendente"),
+                        e("p", { className: "text-sm text-slate-400" }, "Para conectar este app ao seu banco de dados, passe os parâmetros 'url' e 'key' na URL do seu navegador. Exemplo:"),
+                        e("div", { className: "bg-slate-950 p-3 rounded-xl text-xs font-mono text-emerald-400 break-all select-all" }, 
+                            window.location.origin + window.location.pathname + "?url=SUA_URL&key=SUA_CHAVE"
                         )
                     )
                 );
             }
 
-            // ─── DASHBOARD PRINCIPAL ─────────────────────────────────────────
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [emailInput, setEmailInput] = useState("");
+            const [passwordInput, setPasswordInput] = useState("");
+            const [authError, setAuthError] = useState("");
+            const [authLoading, setAuthLoading] = useState(false);
+            const [investimentos, setInvestimentos] = useState([]);
+            const [mostrarSaldo, setMostrarSaldo] = useState(true);
+            const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
+            const [itemSelecionado, setItemSelecionado] = useState(null);
+            const [valorSimulado, setValorSimulado] = useState(1000);
+            const [periodoGrafico, setPeriodoGrafico] = useState("1M");
+
+            useEffect(() => {
+                supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        setUser(session.user);
+                        buscarInvestimentos(session.user.id);
+                    } else {
+                        setLoading(false);
+                    }
+                });
+
+                const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+                    if (session) {
+                        setUser(session.user);
+                        buscarInvestimentos(session.user.id);
+                    } else {
+                        setUser(null);
+                        setInvestimentos([]);
+                        setLoading(false);
+                    }
+                });
+
+                return () => subscription.unsubscribe();
+            }, []);
+
+            const buscarInvestimentos = async (userId) => {
+                try {
+                    setLoading(true);
+                    let { data, error } = await supabaseClient.from('investimentos_usuario').select('*');
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        const payload = DATASET_PADRAO.map(item => ({
+                            user_id: userId, nome: item.nome, categoria: item.categoria, valor: item.valor,
+                            rentabilidade: item.rentabilidade, taxa_anual: item.taxaAnual, risco: item.risco,
+                            risco_cor: item.riscoCor, desc_pratica: item.desc, onde_como: item.ondeComo, graficos: item.graficos
+                        }));
+                        const { data: insertedData, error: insertError } = await supabaseClient.from('investimentos_usuario').insert(payload).select();
+                        if (insertError) throw insertError;
+                        data = insertedData;
+                    }
+                    setInvestimentos(data);
+                    if (data.length > 0) setItemSelecionado(data[0]);
+                } catch (err) {
+                    console.error(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleAuth = async (eSubmit) => {
+                eSubmit.preventDefault();
+                setAuthError("");
+                setAuthLoading(true);
+                const email = emailInput.trim();
+                
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
+
+                if (error) {
+                    if (error.status === 400 && !error.message.includes("Invalid login credentials")) {
+                        const { error: signUpError } = await supabaseClient.auth.signUp({ email, password: passwordInput });
+                        if (signUpError) { setAuthError(signUpError.message); setAuthLoading(false); }
+                    } else {
+                        setAuthError("E-mail ou senha incorretos.");
+                        setAuthLoading(false);
+                    }
+                }
+            };
+
+            if (loading && !user) return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400 font-bold" }, "Conectando à Nuvem...");
+
+            if (!user) {
+                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
+                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
+                        e("div", { className: "text-center space-y-2" },
+                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg text-2xl" }, "🪙"),
+                            e("h1", { className: "text-2xl font-black text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")),
+                            e("p", { className: "text-sm text-slate-400" }, "Insira seus dados para sincronizar sua carteira.")
+                        ),
+                        e("form", { onSubmit: handleAuth, className: "space-y-4" },
+                            e("div", { className: "space-y-1" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase" }, "E-mail"),
+                                e("input", { type: "email", required: true, placeholder: "seu@email.com", value: emailInput, onChange: (evt) => setEmailInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
+                            ),
+                            e("div", { className: "space-y-1" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase" }, "Senha"),
+                                e("input", { type: "password", required: true, placeholder: "Mínimo 6 caracteres", value: passwordInput, onChange: (evt) => setPasswordInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
+                            ),
+                            authError && e("p", { className: "text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, authError),
+                            e("button", { type: "submit", disabled: authLoading, className: "w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition" }, authLoading ? "Acessando..." : "Entrar / Cadastrar")
+                        )
+                    )
+                );
+            }
+
+            const totalSaldo = investimentos.reduce((acc, item) => acc + Number(item.valor), 0);
+            const categorias = ["Todos", "Tesouro Direto", "CDB / CDI", "LCI / LCA", "FIIs", "Ações", "Cripto"];
+            const listaFiltrada = categoriaFiltro === "Todos" ? investimentos : investimentos.filter(i => i.categoria === categoriaFiltro);
+            const rendimentoAnual = itemSelecionado ? valorSimulado * Number(itemSelecionado.taxa_anual) : 0;
+            const rendimentoMensalEstimado = rendimentoAnual / 12;
+
             return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
                 e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
                     e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
                         e("div", { className: "flex items-center gap-2" },
-                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold shadow-md shadow-emerald-500/20" }, "🪙"),
-                            e("span", { className: "font-extrabold text-xl text-white" }, 
-                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
-                            )
+                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold" }, "🪙"),
+                            e("span", { className: "font-extrabold text-xl text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas"))
                         ),
                         e("div", { className: "flex items-center gap-3" },
-                            e("div", { className: "flex items-center gap-2 bg-slate-950 pl-3 pr-1 py-1 rounded-full border border-slate-800" },
-                                e("span", { className: "text-xs font-bold text-slate-300 hidden sm:inline capitalize" }, usuarioLogado),
-                                usuarioLogado.toLowerCase() === USUARIO_CORRETO ?
-                                e("img", { 
-                                    src: FOTO_PERFIL_URL, 
-                                    alt: "Avatar",
-                                    className: "w-8 h-8 rounded-full border border-emerald-500 shadow-sm"
-                                }) :
-                                e("div", { className: "w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs" }, 
-                                    getIniciais(usuarioLogado)
-                                )
-                            ),
-                            e("button", {
-                                onClick: handleLogout,
-                                className: "text-xs font-bold text-slate-400 hover:text-rose-400 p-2 rounded-lg transition"
-                            }, "Sair")
+                            e("span", { className: "text-xs text-slate-400 max-w-[120px] truncate" }, user.email),
+                            e("button", { onClick: () => { supabaseClient.auth.signOut(); setUser(null); }, className: "text-xs font-bold text-rose-400" }, "Sair")
                         )
                     )
                 ),
-
                 e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
-                    // COLUNA ESQUERDA (CARDS + FILTROS)
                     e("div", { className: "md:col-span-2 space-y-6" },
-                        e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800" },
+                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800" },
                             e("div", { className: "flex justify-between items-center mb-2" },
-                                e("span", { className: "text-sm text-slate-400 font-medium" }, "Patrimônio Total Simulado"),
-                                e("button", { 
-                                    onClick: () => setMostrarSaldo(!mostrarSaldo),
-                                    className: "text-slate-300 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition border border-slate-700"
-                                }, mostrarSaldo ? "Ocultar Saldo" : "Mostrar Saldo")
+                                e("span", { className: "text-sm text-slate-400" }, "Patrimônio Total"),
+                                e("button", { onClick: () => setMostrarSaldo(!mostrarSaldo), className: "text-xs bg-slate-800 px-2.5 py-1.5 rounded-lg" }, mostrarSaldo ? "Ocultar" : "Mostrar")
                             ),
-                            e("div", { className: "text-3xl font-black tracking-tight mb-2 text-white" }, 
-                                mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••"
-                            ),
-                            e("p", { className: "text-xs text-emerald-400 font-medium flex items-center gap-1" }, "📈 v5.0 — Multi-Alocação ativa com Gráficos por Período.")
+                            e("div", { className: "text-3xl font-black" }, mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••")
                         ),
-
-                        e("div", { className: "space-y-2" },
-                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Filtrar por Tipo"),
-                            e("div", { className: "flex flex-wrap gap-2" },
-                                categorias.map(cat => 
-                                    e("button", {
-                                        key: cat,
-                                        onClick: () => setCategoriaFiltro(cat),
-                                        className: `px-3 py-2 rounded-xl text-xs font-bold transition border ${
-                                            categoriaFiltro === cat 
-                                                ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/10" 
-                                                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
-                                        }`
-                                    }, cat)
-                                )
-                            )
+                        e("div", { className: "flex flex-wrap gap-2" },
+                            categorias.map(cat => e("button", { key: cat, onClick: () => setCategoriaFiltro(cat), className: `px-3 py-2 rounded-xl text-xs font-bold border ${categoriaFiltro === cat ? "bg-emerald-500 text-white" : "bg-slate-900 text-slate-300"}` }, cat))
                         ),
-
-                        e("div", { className: "space-y-3" },
-                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Onde o dinheiro está alocado"),
-                            e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
-                                listaFiltrada.map(item => 
-                                    e("div", {
-                                        key: item.id,
-                                        onClick: () => {
-                                            setItemSelecionado(item);
-                                        },
-                                        className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between min-h-[140px] h-full ${
-                                            itemSelecionado.id === item.id 
-                                                ? "border-emerald-500 bg-emerald-950/10 shadow-lg shadow-emerald-500/5" 
-                                                : "border-slate-850 bg-slate-900 hover:border-slate-700"
-                                        }`
-                                    }, 
-                                        e("div", { className: "space-y-1" },
-                                            e("div", { className: "flex justify-between items-start gap-2" },
-                                                e("h3", { className: "font-bold text-white text-sm sm:text-base leading-tight flex-1" }, item.nome),
-                                                e("span", { className: `text-[9px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${item.riscoCor}` }, item.risco)
-                                            ),
-                                            e("span", { className: "text-xs text-slate-400 font-medium block" }, item.categoria)
-                                        ),
-                                        e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800/60" },
-                                            e("div", null,
-                                                e("span", { className: "text-[10px] text-slate-400 block uppercase font-bold" }, "Valor"),
-                                                e("span", { className: "font-extrabold text-white text-base" }, `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                            ),
-                                            e("span", { className: "text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg shrink-0 border border-emerald-500/20" }, item.rentabilidade)
-                                        )
-                                    )
-                                )
-                            )
+                        e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
+                            listaFiltrada.map(item => e("div", { key: item.id, onClick: () => setItemSelecionado(item), className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer ${itemSelecionado && itemSelecionado.id === item.id ? "border-emerald-500" : "border-transparent"}` },
+                                e("div", { className: "flex justify-between" }, e("h3", { className: "font-bold text-white text-sm" }, item.nome), e("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${item.risco_cor}` }, item.risco)),
+                                e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800" }, e("span", { className: "font-extrabold text-white" }, `R$ ${Number(item.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`), e("span", { className: "text-xs text-emerald-400 font-bold" }, item.rentabilidade))
+                            ))
                         )
                     ),
-
-                    // COLUNA DIREITA (GUIA + GRÁFICOS + SIMULADOR)
                     e("div", { className: "space-y-6" },
-                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4" },
-                            e("div", { className: "flex items-center gap-2" },
-                                e("span", { className: "text-xl" }, "💡"),
-                                e("h2", { className: "font-extrabold text-white text-lg" }, "Guia Prático")
+                        itemSelecionado && e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4" },
+                            e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
+                            e("div", { className: "pt-4 pb-2 bg-slate-950 rounded-xl" },
+                                e("svg", { viewBox: "0 0 100 30", className: "w-full h-16 text-emerald-400 stroke-current", fill: "none", strokeWidth: "2" }, e("polyline", { points: itemSelecionado.graficos[periodoGrafico] || "0,15 100,15" }))
                             ),
-                            e("div", { className: "bg-slate-950 rounded-2xl p-4 border border-slate-800" },
-                                e("span", { className: "text-[10px] uppercase font-bold text-slate-500 block mb-1" }, "Selecionado"),
-                                e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
-                                e("div", { className: "mt-2 flex gap-2" },
-                                    e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md border border-slate-700" }, itemSelecionado.categoria)
-                                )
-                            ),
-
-                            // ─── GRÁFICO NATIVO INTERATIVO POR PERÍODO ────────────────
-                            e("div", { className: "space-y-2 bg-slate-950 p-4 rounded-2xl border border-slate-800" },
-                                e("div", { className: "flex justify-between items-center" },
-                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider" }, "Histórico de Rendimento"),
-                                    e("div", { className: "flex gap-1" },
-                                        ["1D", "5D", "1M", "6M"].map(p => 
-                                            e("button", {
-                                                key: p,
-                                                onClick: () => setPeriodoGrafico(p),
-                                                className: `text-[10px] font-bold px-2 py-1 rounded ${
-                                                    periodoGrafico === p ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-400 hover:text-white"
-                                                }`
-                                            }, p)
-                                        )
-                                    )
-                                ),
-                                // Renderiza o gráfico em linha usando SVG puro
-                                e("div", { className: "pt-4 pb-2 flex items-center justify-center" },
-                                    e("svg", { viewBox: "0 0 100 30", className: "w-full h-16 text-emerald-400 stroke-current", fill: "none", strokeWidth: "2", strokeLinecap: "round" },
-                                        e("polyline", {
-                                            points: itemSelecionado.graficos[periodoGrafico]
-                                        })
-                                    )
-                                ),
-                                e("div", { className: "flex justify-between text-[10px] text-slate-500 font-bold" },
-                                    e("span", null, "Início do Período"),
-                                    e("span", null, "Hoje")
-                                )
-                            ),
-
-                            e("div", { className: "space-y-3" },
-                                e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
-                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.desc)
-                                ),
-                                e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "Como investir?"),
-                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
-                                )
-                            )
+                            e("p", { className: "text-xs text-slate-300" }, itemSelecionado.desc_pratica)
                         ),
-
-                        e("div", { className: "bg-emerald-950 text-white rounded-3xl p-6 shadow-2xl space-y-4 border border-emerald-800/50 shadow-emerald-950/20" },
-                            e("div", { className: "flex items-center gap-2" },
-                                e("span", { className: "text-xl" }, "🧮"),
-                                e("h2", { className: "font-extrabold text-lg text-emerald-50" }, "Simulador de Ganhos")
-                            ),
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-emerald-400 font-bold uppercase tracking-wider" }, "Quanto quer simular?"),
-                                e("div", { className: "relative rounded-xl shadow-sm" },
-                                    e("div", { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
-                                        e("span", { className: "text-emerald-500 font-bold text-sm" }, "R$")
-                                    ),
-                                    e("input", {
-                                        type: "number",
-                                        value: valorSimulado,
-                                        onChange: (evt) => setValorSimulado(Number(evt.target.value)),
-                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                                    })
-                                )
-                            ),
-                            
-                            itemSelecionado.categoria === "FIIs" ? 
-                            e("div", { className: "pt-3 border-t border-emerald-800/60 space-y-2" },
-                                e("div", { className: "bg-emerald-900/30 p-2.5 rounded-xl border border-emerald-800" },
-                                    e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "💰 Pinga na conta todo mês (Aluguel)"),
-                                    e("span", { className: "text-lg font-black text-yellow-300" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                ),
-                                e("div", { className: "grid grid-cols-2 gap-2 text-xs" },
-                                    e("div", null,
-                                        e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Total no Ano"),
-                                        e("span", { className: "font-bold text-white" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                    ),
-                                    e("div", null,
-                                        e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Acúmulo Total"),
-                                        e("span", { className: "font-bold text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                    )
-                                )
-                            ) :
-                            e("div", { className: "pt-3 border-t border-emerald-800/60 grid grid-cols-2 gap-2" },
-                                e("div", null,
-                                    e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Rendimento (1 Ano)"),
-                                    e("span", { className: "text-base font-black text-emerald-300" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                ),
-                                e("div", null,
-                                    e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Valor Total Final"),
-                                    e("span", { className: "text-base font-black text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                )
-                            ),
-                            
-                            e("p", { className: "text-[11px] text-emerald-400/70 italic leading-snug" }, 
-                                `Estimativa calculada sobre a taxa de ${itemSelecionado.rentabilidade} recomendada.`
+                        itemSelecionado && e("div", { className: "bg-emerald-950 rounded-3xl p-6 space-y-4" },
+                            e("input", { type: "number", value: valorSimulado, onChange: (evt) => setValorSimulado(Number(evt.target.value)), className: "block w-full p-2.5 bg-slate-950 rounded-xl text-white font-extrabold text-center" }),
+                            e("div", { className: "text-xs space-y-1 text-emerald-100" },
+                                e("div", { className: "flex justify-between" }, e("span", null, "Mensal:"), e("span", { className: "font-bold" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)),
+                                e("div", { className: "flex justify-between" }, e("span", null, "Anual:"), e("span", { className: "font-bold" }, `R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`))
                             )
                         )
                     )
-                ),
-
-                e("footer", { className: "bg-slate-900 text-center py-4 text-xs text-slate-500 font-medium border-t border-slate-800 mt-8" },
-                    "Minhas Moedinhas © 2026"
                 )
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(e(App));
+        ReactDOM.createRoot(document.getElementById('root')).render(e(App));
     </script>
 </body>
 </html>
