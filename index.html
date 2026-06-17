@@ -11,427 +11,184 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
-    .bar-animate { transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-    .accordion-body {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.35s ease;
-    }
-    .accordion-body.open {
-      max-height: 500px;
-    }
-    .pulse-dot {
-      animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
-    }
-    @keyframes pulse-ring {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+
+    /* Bar animations */
+    .bar-animate { transition: height 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+    .bar-proj     { background: linear-gradient(to top, #818cf8cc, #a5b4fcee); }
+    .bar-hist     { background: #34d39980; }
+    .bar-hist:hover { background: #34d399; }
+
+    /* Accordion */
+    .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
+    .accordion-body.open { max-height: 520px; }
+
+    /* Selic pulse */
+    .pulse-dot { animation: pulse-ring 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite; }
+    @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* Progress bar */
+    .progress-fill { transition: width 0.7s cubic-bezier(0.16,1,0.3,1); }
+
+    /* Card glow on hover */
+    .card-glow:hover { box-shadow: 0 0 0 1px #34d39933, 0 8px 28px #34d39914; }
+
+    /* Hide number spinners */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     input[type=number] { -moz-appearance: textfield; }
-    .card-glow:hover { box-shadow: 0 0 0 1px #34d39933, 0 8px 24px #34d39911; }
+
+    /* Profile button micro-interaction */
+    .profile-btn { transition: all 0.18s ease; }
+    .profile-btn:hover { transform: translateY(-1px); }
+    .profile-btn:active { transform: scale(0.96); }
+
+    /* Simulate button */
+    .sim-btn { transition: all 0.15s ease; }
+    .sim-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px #34d39940; }
+    .sim-btn:active { transform: scale(0.97); box-shadow: none; }
+
+    /* Tab toggle */
+    .tab-btn { transition: all 0.2s ease; }
+
+    /* Tooltip bar */
+    .bar-tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 6px;
+    }
+    .bar-wrap:hover .bar-tooltip { opacity: 1; }
   </style>
 </head>
 <body class="bg-[#0d1117] text-slate-100 antialiased">
   <div id="root"></div>
   <script>
-    const { useState, useEffect, useRef, useCallback } = React;
+    const { useState, useEffect, useCallback } = React;
     const html = htm.bind(React.createElement);
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 🗄️  CAMADA DE DADOS — REPOSITORY PATTERN
+    // 🗄️  REPOSITORY PATTERN — troque os corpos abaixo por Supabase/Firebase
     // ─────────────────────────────────────────────────────────────────────────
     const DB_KEYS = {
       APORTE: '@minhasmoedinhas:aporte',
-      HISTORICO: '@minhasmoedinhas:historico',
+      PERFIL:  '@minhasmoedinhas:perfil',
     };
 
     async function saveToDatabase(key, data) {
-      try {
-        localStorage.setItem(key, JSON.stringify(data));
-        return { ok: true };
-      } catch (err) {
-        console.error('[DB] Falha ao salvar:', err);
-        return { ok: false, error: err };
-      }
+      try { localStorage.setItem(key, JSON.stringify(data)); return { ok: true }; }
+      catch (err) { console.error('[DB] save:', err); return { ok: false }; }
     }
 
     async function loadFromDatabase(key) {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : null;
-      } catch (err) {
-        console.error('[DB] Falha ao carregar:', err);
-        return null;
-      }
+      try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; }
+      catch (err) { console.error('[DB] load:', err); return null; }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 📊  DADOS ESTÁTICOS
+    // 📊  CONSTANTES E DADOS
     // ─────────────────────────────────────────────────────────────────────────
+    const SELIC_FALLBACK = 10.5;
+
     const HISTORICO = [
-      { mes: 'Jan', valor: 4000 },
-      { mes: 'Fev', valor: 5500 },
-      { mes: 'Mar', valor: 8200 },
+      { mes: 'Jan', valor: 4000  },
+      { mes: 'Fev', valor: 5500  },
+      { mes: 'Mar', valor: 8200  },
       { mes: 'Abr', valor: 12000 },
       { mes: 'Mai', valor: 15500 },
       { mes: 'Jun', valor: 20550 },
     ];
-    const MAX_VALOR = Math.max(...HISTORICO.map((h) => h.valor));
+    const HIST_MAX = Math.max(...HISTORICO.map(h => h.valor));
 
-    const ALOCACAO = [
-      { nome: 'Renda Fixa (50%)',         pct: 0.5, cor: 'text-indigo-400',  bg: 'bg-indigo-400' },
-      { nome: 'FIIs (Imobiliário) (40%)', pct: 0.4, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-      { nome: 'Ações (10%)',              pct: 0.1, cor: 'text-amber-400',   bg: 'bg-amber-400'  },
-    ];
-
-    const SELIC_FALLBACK = 10.5;
+    // Perfis de investidor
+    const PERFIS = {
+      conservador: {
+        label: 'Conservador',
+        emoji: '🛡️',
+        alocacao: [
+          { nome: 'Renda Fixa',        pct: 0.70, cor: 'text-indigo-400',  bg: 'bg-indigo-400',  barColor: '#818cf8' },
+          { nome: 'FIIs (Imobiliário)', pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400', barColor: '#34d399' },
+          { nome: 'Ações',             pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400',   barColor: '#fbbf24' },
+        ],
+      },
+      moderado: {
+        label: 'Moderado',
+        emoji: '⚖️',
+        alocacao: [
+          { nome: 'Renda Fixa',        pct: 0.50, cor: 'text-indigo-400',  bg: 'bg-indigo-400',  barColor: '#818cf8' },
+          { nome: 'FIIs (Imobiliário)', pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400', barColor: '#34d399' },
+          { nome: 'Ações',             pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400',   barColor: '#fbbf24' },
+        ],
+      },
+      arrojado: {
+        label: 'Arrojado',
+        emoji: '🚀',
+        alocacao: [
+          { nome: 'Renda Fixa',        pct: 0.20, cor: 'text-indigo-400',  bg: 'bg-indigo-400',  barColor: '#818cf8' },
+          { nome: 'FIIs (Imobiliário)', pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400', barColor: '#34d399' },
+          { nome: 'Ações',             pct: 0.50, cor: 'text-amber-400',   bg: 'bg-amber-400',   barColor: '#fbbf24' },
+        ],
+      },
+    };
 
     const OPORTUNIDADES = [
       {
-        id: 'tesouro',
-        emoji: '🏛️',
-        titulo: 'Tesouro Selic',
-        subtitulo: 'Renda Fixa · Risco Baixo',
+        id: 'tesouro', emoji: '🏛️', titulo: 'Tesouro Selic', subtitulo: 'Renda Fixa · Risco Baixo',
         tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40',
-        descricao: 'O ativo mais seguro do país: rentabilidade diária atrelada à Taxa Selic. Liquidez em D+1, ideal para reserva de emergência e primeiros aportes. Você empresta ao governo e ele te paga com juros.',
-        cta: 'Investir no Tesouro',
-        href: 'https://www.tesourodireto.com.br/',
+        descricao: 'O ativo mais seguro do país: rentabilidade diária atrelada à Taxa Selic. Liquidez em D+1, ideal para reserva de emergência e primeiros aportes.',
+        cta: 'Investir no Tesouro', href: 'https://www.tesourodireto.com.br/',
         destaque: 'A porta de entrada mais segura para o mundo dos investimentos.',
       },
       {
-        id: 'fii',
-        emoji: '🏢',
-        titulo: 'Fundos Imobiliários (FIIs)',
-        subtitulo: 'Renda Variável · Risco Médio',
+        id: 'fii', emoji: '🏢', titulo: 'Fundos Imobiliários (FIIs)', subtitulo: 'Renda Variável · Risco Médio',
         tagColor: 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/40',
-        descricao: 'Seja sócio de shoppings, galpões e escritórios com a partir de R$100. FIIs pagam dividendos mensais isentos de IR para pessoa física. Uma forma acessível de ganhar renda passiva com imóveis.',
-        cta: 'Ver FIIs disponíveis',
-        href: 'https://statusinvest.com.br/fundos-imobiliarios',
-        destaque: 'Dividendos mensais + isenção de IR: o favorito dos investidores PF.',
+        descricao: 'Seja sócio de shoppings, galpões e escritórios com a partir de R$100. FIIs pagam dividendos mensais isentos de IR para pessoa física.',
+        cta: 'Ver FIIs disponíveis', href: 'https://statusinvest.com.br/fundos-imobiliarios',
+        destaque: 'Dividendos mensais + isenção de IR: o favorito dos investidores.',
       },
       {
-        id: 'acoes',
-        emoji: '📈',
-        titulo: 'Ações — B3',
-        subtitulo: 'Renda Variável · Risco Alto',
+        id: 'acoes', emoji: '📈', titulo: 'Ações — B3', subtitulo: 'Renda Variável · Risco Alto',
         tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40',
-        descricao: 'Compre uma fatia de empresas reais como Petrobras, Vale ou Nubank. Ações oferecem potencial de crescimento muito acima da inflação no longo prazo, mas exigem estômago para a volatilidade.',
-        cta: 'Abrir conta na corretora',
-        href: 'https://www.xpi.com.br/',
+        descricao: 'Compre uma fatia de empresas reais como Petrobras, Vale ou Nubank. Oferecem alto potencial de crescimento no longo prazo.',
+        cta: 'Abrir conta na corretora', href: 'https://www.xpi.com.br/',
         destaque: 'Para o horizonte longo: historicamente a maior rentabilidade real.',
       },
     ];
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 🧩  COMPONENTES
+    // 🔧  UTILIDADES
     // ─────────────────────────────────────────────────────────────────────────
 
-    function SelicBadge({ selic, isLive, loading }) {
-      if (loading) {
-        return html`
-          <div class="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">
-            <span class="w-1.5 h-1.5 rounded-full bg-slate-600 pulse-dot inline-block"></span>
-            Buscando Selic…
-          </div>
-        `;
-      }
-      const dotClass = isLive ? 'bg-emerald-400' : 'bg-amber-400';
-      const textClass = isLive ? 'text-emerald-400' : 'text-amber-400';
-      const label = isLive ? 'Selic ao vivo' : 'Média de mercado';
-      return html`
-        <div class="flex items-center gap-1.5 text-[10px] bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">
-          <span class="w-1.5 h-1.5 rounded-full ${dotClass} pulse-dot inline-block"></span>
-          <span class="${textClass} font-semibold">${selic.toFixed(2)}% a.a.</span>
-          <span class="text-slate-500">${label}</span>
-        </div>
-      `;
-    }
+    // Gera 12 meses de projeção com juros compostos na parcela de Renda Fixa
+    function gerarProjecao(aporte, perfil, selicAnual) {
+      const rfPct    = perfil.alocacao[0].pct;
+      const fiiPct   = perfil.alocacao[1].pct;
+      const acoesPct = perfil.alocacao[2].pct;
 
-    function OportunidadeCard({ op, isOpen, onToggle }) {
-      const bodyClass = isOpen ? 'accordion-body open' : 'accordion-body';
-      const borderClass = isOpen ? 'border-[#34d399]/40' : 'border-slate-800';
-      const cardClass = 'bg-[#1a2233] rounded-2xl border transition-all duration-300 card-glow overflow-hidden ' + borderClass;
-      const svgClass = `w-4 h-4 text-slate-500 transition-transform duration-300 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`;
+      const taxaMensal = Math.pow(1 + selicAnual / 100, 1 / 12) - 1;
+      const fiiMensal  = 0.006;
+      const acoesMensal = 0.010;
 
-      function handleCtaClick(e) {
-        e.stopPropagation();
-      }
+      const meses = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
+      let rf    = aporte * rfPct;
+      let fii   = aporte * fiiPct;
+      let acoes = aporte * acoesPct;
 
-      return html`
-        <div class=${cardClass}>
-          <button
-            class="w-full flex items-center justify-between p-4 text-left cursor-pointer"
-            onClick=${onToggle}
-            aria-expanded=${isOpen}
-          >
-            <div class="flex items-center gap-3">
-              <span class="text-2xl leading-none">${op.emoji}</span>
-              <div>
-                <p class="text-sm font-bold text-slate-100">${op.titulo}</p>
-                <span class="text-[10px] px-2 py-0.5 rounded-full font-medium ${op.tagColor} mt-0.5 inline-block">${op.subtitulo}</span>
-              </div>
-            </div>
-            <svg
-              class=${svgClass}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <div class=${bodyClass}>
-            <div class="px-4 pb-4 space-y-3">
-              <div class="h-px bg-slate-700/50"></div>
-              <p class="text-xs text-slate-300 leading-relaxed">${op.descricao}</p>
-              <div class="bg-[#0d1117]/60 rounded-xl p-3 border border-slate-700/40">
-                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1">Por que considerar?</p>
-                <p class="text-xs text-[#34d399] font-medium">${op.destaque}</p>
-              </div>
-              <a
-                href=${op.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick=${handleCtaClick}
-                class="flex items-center justify-center gap-2 w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-3 rounded-xl transition-colors duration-200"
-              >
-                ${op.cta}
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-              <p class="text-[9px] text-slate-600 text-center">Link de parceiro. Analise sempre antes de investir.</p>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🚀  APP PRINCIPAL
-    // ─────────────────────────────────────────────────────────────────────────
-    function App() {
-      const [valor, setValor] = useState('');
-      const [resultado, setResultado] = useState(null);
-      const [openCard, setOpenCard] = useState(null);
-
-      const [selic, setSelic] = useState(SELIC_FALLBACK);
-      const [selicIsLive, setSelicIsLive] = useState(false);
-      const [selicLoading, setSelicLoading] = useState(true);
-
-      useEffect(() => {
-        (async () => {
-          const saved = await loadFromDatabase(DB_KEYS.APORTE);
-          if (saved !== null && saved !== '') {
-            const v = parseFloat(saved);
-            if (!Number.isNaN(v) && v > 0) {
-              setValor(String(saved));
-              setResultado(v);
-            }
-          }
-        })();
-      }, []);
-
-      useEffect(() => {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-
-        (async () => {
-          try {
-            const res = await fetch(
-              'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json',
-              { signal: controller.signal }
-            );
-            if (!res.ok) throw new Error('Status ' + res.status);
-            const json = await res.json();
-            const taxaDiaria = parseFloat(json[0]?.valor);
-            if (Number.isNaN(taxaDiaria)) throw new Error('Dado inválido');
-            const taxaAnual = (Math.pow(1 + taxaDiaria / 100, 252) - 1) * 100;
-            setSelic(parseFloat(taxaAnual.toFixed(2)));
-            setSelicIsLive(true);
-          } catch (err) {
-            setSelic(SELIC_FALLBACK);
-            setSelicIsLive(false);
-          } finally {
-            clearTimeout(timeout);
-            setSelicLoading(false);
-          }
-        })();
-
-        return () => {
-          controller.abort();
-          clearTimeout(timeout);
-        };
-      }, []);
-
-      const calcular = useCallback(async () => {
-        const v = parseFloat(valor);
-        if (Number.isNaN(v) || v <= 0) return;
-        setResultado(v);
-        await saveToDatabase(DB_KEYS.APORTE, valor);
-      }, [valor]);
-
-      const handleKeyDown = useCallback((e) => {
-        if (e.key === 'Enter') calcular();
-      }, [calcular]);
-
-      function calcularProjecao(aporte, pct) {
-        const bruto = aporte * pct;
-        const rendimentoMensal = (bruto * (selic / 100)) / 12;
-        return { bruto, rendimentoMensal };
-      }
-
-      function toggleCard(id) {
-        setOpenCard(function(prev) { return prev === id ? null : id; });
-      }
-
-      return html`
-        <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10">
-
-          <header class="pt-5 flex items-start justify-between">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-2xl">🪙</span>
-                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
-              </div>
-              <p class="text-xs text-slate-500 mt-1 ml-8">Sua jornada para a autonomia financeira.</p>
-            </div>
-            <${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} />
-          </header>
-
-          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Evolução do Patrimônio</h2>
-              <span class="text-[10px] text-slate-500">últimos 6 meses</span>
-            </div>
-            <div class="flex items-end justify-between h-28 gap-1.5 px-1">
-              ${HISTORICO.map(function(item) {
-                const altura = (item.valor / MAX_VALOR) * 100;
-                const valorFormatado = item.valor.toLocaleString('pt-BR');
-                return html`
-                  <div key=${item.mes} class="flex flex-col items-center group w-full">
-                    <div
-                      class="w-full bg-[#34d399]/80 hover:bg-[#34d399] rounded-t-sm bar-animate cursor-default relative"
-                      style=${{ height: `${altura}%`, minHeight: '6px' }}
-                      title="${'R$ ' + valorFormatado}"
-                    >
-                      <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[8px] text-[#34d399] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-semibold">
-                        ${'R$' + (item.valor / 1000).toFixed(1) + 'k'}
-                      </span>
-                    </div>
-                    <span class="text-[9px] mt-1.5 text-slate-600 group-hover:text-[#34d399] font-medium transition-colors">${item.mes}</span>
-                  </div>
-                `;
-              })}
-            </div>
-            <div class="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between">
-              <span class="text-[10px] text-slate-500">Total acumulado</span>
-              <span class="text-sm font-bold text-[#34d399]">
-                R$ ${HISTORICO[HISTORICO.length-1].valor.toLocaleString('pt-BR')}
-              </span>
-            </div>
-          </section>
-
-          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Simulador de Aporte</h2>
-              ${!selicLoading && html`
-                <span class="text-[9px] text-slate-500">
-                  Usando Selic ${selic.toFixed(1)}% a.a.
-                </span>
-              `}
-            </div>
-
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold">R$</span>
-                <input
-                  type="number"
-                  value=${valor}
-                  onChange=${function(e) { setValor(e.target.value); }}
-                  onKeyDown=${handleKeyDown}
-                  placeholder="0,00"
-                  min="0"
-                  step="any"
-                  class="w-full pl-10 pr-3 py-3 bg-[#0d1117] rounded-xl border border-slate-700 focus:outline-none focus:border-[#34d399] text-slate-100 placeholder-slate-600 text-sm transition-colors"
-                />
-              </div>
-              <button
-                onClick=${calcular}
-                class="bg-[#34d399] hover:bg-[#6ee7b7] active:scale-95 text-slate-950 px-5 rounded-xl font-bold text-sm transition-all duration-150"
-              >
-                Simular
-              </button>
-            </div>
-
-            ${resultado !== null && html`
-              <div class="space-y-2.5">
-                <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Divisão sugerida da carteira</p>
-                ${ALOCACAO.map(function(a) {
-                  const proj = calcularProjecao(resultado, a.pct);
-                  const brutoFormatado = proj.bruto.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                  const rendFormatado  = proj.rendimentoMensal.toFixed(2);
-                  const isRF = a.pct === 0.5;
-                  return html`
-                    <div key=${a.nome} class="bg-[#0d1117]/70 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                      <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-1.5 h-8 rounded-full flex-shrink-0 ${a.bg} opacity-80"></div>
-                        <div class="min-w-0">
-                          <p class="text-xs text-slate-300 font-medium truncate">${a.nome}</p>
-                          ${isRF && !selicLoading && html`
-                            <p class="text-[9px] text-slate-500 mt-0.5">
-                              ${'≈ R$' + rendFormatado + '/mês em juros'}
-                            </p>
-                          `}
-                        </div>
-                      </div>
-                      <span class="font-bold ${a.cor} text-sm flex-shrink-0">
-                        ${'R$ ' + brutoFormatado}
-                      </span>
-                    </div>
-                  `;
-                })}
-                <div class="bg-[#0d1117]/40 rounded-xl p-3 border border-slate-800/50">
-                  <p class="text-[9px] text-slate-500 leading-relaxed text-center">
-                    Projeção de renda fixa baseada na Selic de ${selic.toFixed(1)}% a.a.
-                    ${!selicIsLive ? ' (média de mercado)' : ' (ao vivo)'}
-                    · Não constitui recomendação de investimento.
-                  </p>
-                </div>
-              </div>
-            `}
-          </section>
-
-          <section class="space-y-3">
-            <div class="flex items-center justify-between px-1">
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">🔥 Top 3 Oportunidades</h2>
-              <span class="text-[9px] text-slate-600">Clique para saber mais</span>
-            </div>
-
-            ${OPORTUNIDADES.map(function(op) {
-              return html`
-                <${OportunidadeCard}
-                  key=${op.id}
-                  op=${op}
-                  isOpen=${openCard === op.id}
-                  onToggle=${function() { toggleCard(op.id); }}
-                />
-              `;
-            })}
-          </section>
-
-          <footer class="pt-4 text-center space-y-1.5 border-t border-slate-800/60">
-            <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
-              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro. Investimentos envolvem riscos de perda.
-            </p>
-            <p class="text-[8px] text-slate-700">© 2025 Minhas Moedinhas · Feito com 💚 no Brasil</p>
-          </footer>
-        </div>
-      `;
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
-  </script>
-</body>
-</html>
+      return meses.map(function(mes, i) {
+        if (i > 0) {
+          rf    = rf    * (1 + taxaMensal);
+          fii   = fii   * (1 + fiiMensal);
+          acoes = acoes * (1 + acoesMensal);
+        }
+        return { mes, valor: rf + fii + acoes };
+      });
