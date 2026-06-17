@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #020617; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -20,199 +20,260 @@
     <div id="root"></div>
 
     <script>
-        const e = React.createElement;
-        const useState = React.useState;
-        const useEffect = React.useEffect;
+        const { useState, useEffect } = React;
 
-        // =======================================================
-        // CONFIGURAÇÃO FIXA E CENTRALIZADA DO BANCO DE DADOS
-        // =======================================================
-        const urlBanco = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-        const keyBanco = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjYyNjEsImV4cCI6MjA5NzI0MjI2MX0.ntq4ABMCXOhvjI-yU5XH7bclEGMVY0_72Admuid1Zn4';
-
-        const supabaseClient = supabase.createClient(urlBanco, keyBanco);
-
-        const DATASET_PADRAO = [
-            { nome: "Tesouro Selic 2027", categoria: "Tesouro Direto", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investmento mais seguro do país. Ideal para reserva de emergência.", ondeComo: "Qualquer banco ou corretora via Tesouro Direto.", graficos: { "1D": "0,25 20,24 40,23 60,24 80,25 100,26", "5D": "0,20 20,22 40,23 60,25 80,24 100,26", "1M": "0,25 20,20 40,18 60,15 80,12 100,5", "6M": "0,28 20,22 40,18 60,14 80,8 100,2" } },
-            { nome: "CDB 110% Liquidez Diária", categoria: "CDB / CDI", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para bancos de médio porte com garantia do FGC até R$250mil.", ondeComo: "Direto no app de bancos digitais como Inter ou Nu.", graficos: { "1D": "0,25 20,24 40,24 60,24 80,25 100,25", "5D": "0,22 20,23 40,24 60,24 80,25 100,25", "1M": "0,25 20,22 40,20 60,18 80,14 100,10", "6M": "0,28 20,24 40,20 60,16 80,10 100,5" } },
-            { nome: "LCA Banco do Brasil", categoria: "LCI / LCA", valor: 3200.00, rentabilidade: "+9.20% a.a.", taxaAnual: 0.0920, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Letra de Crédito do Agronegócio. ISENTO de Imposto de Renda.", ondeComo: "Disponível no aplicativo do Banco do Brasil.", graficos: { "1D": "0,25 20,25 40,24 60,24 80,24 100,23", "5D": "0,24 20,24 40,23 60,23 80,22 100,21", "1M": "0,25 20,22 40,19 60,17 80,15 100,13", "6M": "0,28 20,24 40,20 60,17 80,14 100,11" } },
-            { nome: "KNCR11 (Fundo de Crítico)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.95% ao mês", taxaAnual: 0.1140, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Fundo focado em títulos de dívidas imobiliárias indexadas ao CDI.", ondeComo: "Comprado na Bolsa via Home Broker com o código KNCR11.", graficos: { "1D": "0,20 20,18 40,19 60,17 80,18 100,16", "5D": "0,22 20,19 40,21 60,18 80,17 100,15", "1M": "0,24 20,20 40,17 60,15 80,11 100,8", "6M": "0,27 20,22 40,16 60,12 80,8 100,4" } },
-            { nome: "Itaú Unibanco (ITUB4)", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Excelente pagador de dividendos.", ondeComo: "Home Broker de qualquer corretora digitando ITUB4.", graficos: { "1D": "0,22 20,10 40,25 60,5 80,18 100,12", "5D": "0,28 20,14 40,22 60,8 80,16 100,5", "1M": "0,25 20,18 40,12 60,20 80,10 100,4", "6M": "0,29 20,24 40,15 60,18 80,8 100,2" } },
-            { nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "A maior moeda digital do mundo. Escassa e descentralizada.", ondeComo: "Corretoras de cripto (Binance/Mynt) ou ETF 'HASH11' na Bolsa.", graficos: { "1D": "0,28 20,5 40,25 60,2 85,22 100,14", "5D": "0,5 20,28 40,12 60,25 80,4 100,18", "1M": "0,25 20,12 40,28 60,8 80,22 100,5", "6M": "0,29 20,22 40,14 60,28 80,6 100,1" } }
+        // Dados Iniciais do Simulador (Caso o banco não mude ou esteja offline)
+        const INVESTIMENTOS_PADRAO = [
+            { id: 1, nome: "Tesouro Selic 2027", tipo: "Tesouro Direto", valor: 5820, rentabilidade: "10.75% a.a.", risco: "Muito Baixo" },
+            { id: 2, nome: "CDB 110% Liquidez Diária", tipo: "CDB / CDI", valor: 2500, rentabilidade: "11.50% a.a.", risco: "Baixo" },
+            { id: 3, nome: "LCA Banco do Brasil", tipo: "LCI / LCA", valor: 3200, rentabilidade: "9.20% a.a.", risco: "Muito Baixo" },
+            { id: 4, nome: "KNCR11 (Fundo de Críton)", tipo: "FIIs", valor: 3500, rentabilidade: "0.95% ao mês", risco: "Baixo" },
+            { id: 5, nome: "HGLG11 (Logística)", tipo: "FIIs", valor: 1200, rentabilidade: "0.82% ao mês", risco: "Baixo" },
+            { id: 6, nome: "XPLG11 (Logística)", tipo: "FIIs", valor: 1500, rentabilidade: "0.85% ao mês", risco: "Baixo" },
+            { id: 7, nome: "Itaú Unibanco (ITUB4)", tipo: "Ações", valor: 1980, rentabilidade: "14.30% a.a.", risco: "Alto" },
+            { id: 8, nome: "Bitcoin (BTC)", tipo: "Cripto", valor: 850, rentabilidade: "42.80% a.a.", risco: "Muito Alto" }
         ];
 
         function App() {
             const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [emailInput, setEmailInput] = useState("");
-            const [passwordInput, setPasswordInput] = useState("");
-            const [authError, setAuthError] = useState("");
-            const [authLoading, setAuthLoading] = useState(false);
-            const [isSignUp, setIsSignUp] = useState(false); // Novo estado para controlar Login/Cadastro
-            const [investimentos, setInvestimentos] = useState([]);
-            const [mostrarSaldo, setMostrarSaldo] = useState(true);
-            const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
-            const [itemSelecionado, setItemSelecionado] = useState(null);
-            const [valorSimulado, setValorSimulado] = useState(1000);
-            const [periodoGrafico, setPeriodoGrafico] = useState("1M");
+            const [isCadastro, setIsCadastro] = useState(false); // Alterna entre Login e Cadastro
+            const [email, setEmail] = useState("");
+            const [senha, setSenha] = useState("");
+            const [erro, setErro] = useState("");
+            const [loading, setLoading] = useState(false);
+            
+            // Estados do Simulador
+            const [investimentos, setInvestimentos] = useState(INVESTIMENTOS_PADRAO);
+            const [filtro, setFiltro] = useState("Todos");
+            const [periodo, setPeriodo] = useState("1M");
+            const [investimentoSelecionado, setInvestimentoSelecionado] = useState(INVESTIMENTOS_PADRAO[0]);
+
+            // Configuração Supabase
+            const [supabase, setSupabase] = useState(null);
 
             useEffect(() => {
-                supabaseClient.auth.getSession().then(({ data: { session } }) => {
-                    if (session) {
-                        setUser(session.user);
-                        buscarInvestimentos(session.user.id);
-                    } else {
-                        setLoading(false);
-                    }
-                });
+                const urlParams = new URLSearchParams(window.location.search);
+                const sbUrl = urlParams.get("url") || "https://gqpxxwfahnwnhklbjwxr.supabase.co";
+                const sbKey = urlParams.get("key");
 
-                const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-                    if (session) {
-                        setUser(session.user);
-                        buscarInvestimentos(session.user.id);
-                    } else {
-                        setUser(null);
-                        setInvestimentos([]);
-                        setLoading(false);
+                if (sbUrl && sbKey) {
+                    try {
+                        const client = supabase.createClient(sbUrl, sbKey);
+                        setSupabase(client);
+                        
+                        // Verifica sessão ativa
+                        client.auth.getSession().then(({ data: { session } }) => {
+                            if (session) setUser(session.user);
+                        });
+                    } catch (e) {
+                        console.error("Erro ao inicializar Supabase:", e);
                     }
-                });
-
-                return () => subscription.unsubscribe();
+                }
             }, []);
 
-            const buscarInvestimentos = async (userId) => {
-                try {
-                    setLoading(true);
-                    let { data, error } = await supabaseClient.from('investimentos_usuario').select('*');
-                    if (error) throw error;
+            // Função de Autenticação Dual (Login ou Cadastro)
+            const handleAutenticacao = async (e) => {
+                e.preventDefault();
+                setErro("");
+                setLoading(true);
 
-                    if (!data || data.length === 0) {
-                        const payload = DATASET_PADRAO.map(item => ({
-                            user_id: userId, nome: item.nome, categoria: item.categoria, valor: item.valor,
-                            rentabilidade: item.rentabilidade, taxa_anual: item.taxaAnual, risco: item.risco,
-                            risco_cor: item.riscoCor, desc_pratica: item.desc, onde_como: item.ondeComo, graficos: item.graficos
-                        }));
-                        const { data: insertedData, error: insertError } = await supabaseClient.from('investimentos_usuario').insert(payload).select();
-                        if (insertError) throw insertError;
-                        data = insertedData;
+                if (!supabase) {
+                    setErro("Chaves de API ausentes na URL. Rodando em modo de simulação local.");
+                    setLoading(false);
+                    // Entra em modo demonstração local se não houver Supabase configurado na URL
+                    setUser({ email: email || "usuario_demonstracao@teste.com" });
+                    return;
+                }
+
+                try {
+                    if (isCadastro) {
+                        // Fluxo de Cadastro Explicito
+                        const { data, error } = await supabase.auth.signUp({ email, password: senha });
+                        if (error) throw error;
+                        alert("Cadastro realizado com sucesso! Verifique seu e-mail se necessário ou faça login.");
+                        setIsCadastro(false);
+                    } else {
+                        // Fluxo de Login
+                        const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+                        if (error) throw error;
+                        setUser(data.user);
                     }
-                    setInvestimentos(data);
-                    if (data.length > 0) setItemSelecionado(data[0]);
                 } catch (err) {
-                    console.error(err.message);
+                    setErro(err.message || "Erro ao processar requisição.");
                 } finally {
                     setLoading(false);
                 }
             };
 
-            const handleAuth = async (eSubmit) => {
-                eSubmit.preventDefault();
-                setAuthError("");
-                setAuthLoading(true);
-                const email = emailInput.trim();
-
-                if (passwordInput.length < 6) {
-                    setAuthError("A senha precisa ter pelo menos 6 caracteres.");
-                    setAuthLoading(false);
-                    return;
-                }
-
-                if (isSignUp) {
-                    // Executa a criação de uma nova conta
-                    const { data, error } = await supabaseClient.auth.signUp({ email, password: passwordInput });
-                    if (error) {
-                        setAuthError("Erro ao cadastrar: " + error.message);
-                        setAuthLoading(false);
-                    } else {
-                        alert("Conta criada com sucesso! Você já está logado.");
-                    }
-                } else {
-                    // Executa o login tradicional
-                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
-                    if (error) {
-                        setAuthError("E-mail ou senha incorretos.");
-                        setAuthLoading(false);
-                    }
-                }
+            const handleSair = () => {
+                if (supabase) supabase.auth.signOut();
+                setUser(null);
+                setEmail("");
+                setSenha("");
             };
 
-            if (loading && !user) return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 text-emerald-400 font-bold" }, "Conectando à Nuvem...");
+            // Cálculos do Patrimônio
+            const patrimonioTotal = investimentos.reduce((acc, inv) => acc + inv.valor, 0);
+            const investimentosFiltrados = filtro === "Todos" ? investimentos : investimentos.filter(i => i.tipo === filtro);
+
+            // Simulador Dinâmico de Gráfico (Gera pontos baseados no período escolhido)
+            const gerarPontosGrafico = () => {
+                const baseValue = investimentoSelecionado ? investimentoSelecionado.valor : patrimonioTotal;
+                const pontos = { "1D": 5, "5D": 6, "1M": 7, "6M": 8, "1A": 12 };
+                const totalPontos = pontos[periodo] || 7;
+                
+                let resultado = [];
+                for (let i = 0; i < totalPontos; i++) {
+                    // Adiciona uma variação randômica controlada para não ser uma linha reta
+                    const oscilacao = (Math.sin(i) * 0.02) + (i * 0.01);
+                    resultado.push(baseValue * (1 - (totalPontos - i) * 0.015 + oscilacao));
+                }
+                resultado.push(baseValue); // O último ponto é o valor atual
+                return resultado;
+            };
+
+            const pontosGrafico = gerarPontosGrafico();
 
             if (!user) {
-                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
-                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
-                        e("div", { className: "text-center space-y-2" },
-                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg text-2xl" }, "🪙"),
-                            e("h1", { className: "text-2xl font-black text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")),
-                            e("p", { className: "text-sm text-slate-400" }, isSignUp ? "Crie sua conta para começar a investir." : "Insira seus dados para sincronizar sua carteira.")
+                return React.createElement('div', { className: 'min-h-screen flex items-center justify-center p-4' },
+                    React.createElement('div', { className: 'bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl' },
+                        React.createElement('div', { className: 'flex flex-col items-center mb-6' },
+                            React.createElement('div', { className: 'bg-emerald-500/10 p-3 rounded-full mb-2' }, '🪙'),
+                            React.createElement('h1', { className: 'text-2xl font-bold' }, 'Minhas', React.createElement('span', { className: 'text-emerald-400' }, 'Moedinhas')),
+                            React.createElement('p', { className: 'text-slate-400 text-sm mt-1' }, isCadastro ? 'Crie sua conta para começar' : 'Insira seus dados para sincronizar sua carteira')
                         ),
-                        e("form", { onSubmit: handleAuth, className: "space-y-4 flex flex-col" },
-                            e("div", { className: "space-y-1" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase" }, "E-mail"),
-                                e("input", { type: "email", required: true, placeholder: "seu@email.com", value: emailInput, onChange: (evt) => setEmailInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
+                        React.createElement('form', { onSubmit: handleAutenticacao, className: 'space-y-4' },
+                            React.createElement('div', null,
+                                React.createElement('label', { className: 'text-xs uppercase font-bold text-slate-400 tracking-wider' }, 'E-mail'),
+                                React.createElement('input', { type: 'email', required: true, value: email, onChange: e => setEmail(e.target.value), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-3 mt-1 text-white focus:outline-none focus:border-emerald-500' })
                             ),
-                            e("div", { className: "space-y-1" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase" }, "Senha"),
-                                e("input", { type: "password", required: true, placeholder: "Mínimo 6 caracteres", value: passwordInput, onChange: (evt) => setPasswordInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
+                            React.createElement('div', null,
+                                React.createElement('label', { className: 'text-xs uppercase font-bold text-slate-400 tracking-wider' }, 'Senha'),
+                                React.createElement('input', { type: 'password', required: true, value: senha, onChange: e => setSenha(e.target.value), className: 'w-full bg-slate-950 border border-slate-800 rounded-xl p-3 mt-1 text-white focus:outline-none focus:border-emerald-500' })
                             ),
-                            authError && e("p", { className: "text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, authError),
-                            e("button", { type: "submit", disabled: authLoading, className: "w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition hover:bg-emerald-600" }, 
-                                authLoading ? "Processando..." : (isSignUp ? "Cadastrar Nova Conta" : "Entrar no Sistema")
-                            ),
-                            // O Botão menor dinâmico solicitado:
-                            e("button", { type: "button", onClick: () => { setIsSignUp(!isSignUp); setAuthError(""); }, className: "text-xs text-slate-400 hover:text-slate-200 mt-2 underline transition text-center bg-transparent border-none cursor-pointer" }, 
-                                isSignUp ? "Já tem uma conta? Faça o Login" : "Não tem uma conta? Cadastre-se aqui"
+                            erro && React.createElement('div', { className: 'bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl text-center' }, erro),
+                            React.createElement('button', { type: 'submit', disabled: loading, className: 'w-full bg-emerald-500 hover:bg-emerald-600 font-semibold p-3 rounded-xl text-slate-950 transition duration-200' }, loading ? 'Carregando...' : isCadastro ? 'Criar Conta (Cadastrar)' : 'Entrar na Carteira'),
+                            React.createElement('div', { className: 'text-center mt-4' },
+                                React.createElement('button', { type: 'button', onClick: () => { setIsCadastro(!isCadastro); setErro(""); }, className: 'text-sm text-emerald-400 hover:underline focus:outline-none' }, isCadastro ? 'Já tem uma conta? Faça Login' : 'Não tem conta? Clique aqui para Cadastrar')
                             )
                         )
                     )
                 );
             }
 
-            const totalSaldo = investimentos.reduce((acc, item) => acc + Number(item.valor), 0);
-            const categorias = ["Todos", "Tesouro Direto", "CDB / CDI", "LCI / LCA", "FIIs", "Ações", "Cripto"];
-            const listaFiltrada = categoriaFiltro === "Todos" ? investimentos : investimentos.filter(i => i.categoria === categoriaFiltro);
-            const rendimentoAnual = itemSelecionado ? valorSimulado * Number(itemSelecionado.taxa_anual) : 0;
-            const rendimentoMensalEstimado = rendimentoAnual / 12;
-
-            return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
-                e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
-                    e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
-                        e("div", { className: "flex items-center gap-2" },
-                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold" }, "🪙"),
-                            e("span", { className: "font-extrabold text-xl text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas"))
-                        ),
-                        e("div", { className: "flex items-center gap-3" },
-                            e("span", { className: "text-xs text-slate-400 max-w-[150px] truncate" }, user.email),
-                            e("button", { onClick: () => { supabaseClient.auth.signOut(); setUser(null); }, className: "text-xs font-bold text-rose-400 hover:underline" }, "Sair")
-                        )
+            // Dashboard Principal (Simulador / Carteira Ativa)
+            return React.createElement('div', { className: 'min-h-screen p-4 md:p-8 max-w-7xl mx-auto' },
+                // Header
+                React.createElement('header', { className: 'flex justify-between items-center mb-8 bg-slate-900 border border-slate-800 p-4 rounded-xl' },
+                    React.createElement('div', { className: 'flex items-center gap-2' },
+                        React.createElement('span', { className: 'text-xl' }, '🪙'),
+                        React.createElement('h1', { className: 'text-xl font-bold' }, 'Minhas', React.createElement('span', { className: 'text-emerald-400' }, 'Moedinhas'))
+                    ),
+                    React.createElement('div', { className: 'flex items-center gap-4' },
+                        React.createElement('span', { className: 'text-sm text-slate-400 hidden sm:inline' }, user.email),
+                        React.createElement('button', { onClick: handleSair, className: 'bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm px-4 p-2 rounded-lg transition' }, 'Sair')
                     )
                 ),
-                e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
-                    e("div", { className: "md:col-span-2 space-y-6" },
-                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800" },
-                            e("div", { className: "flex justify-between items-center mb-2" },
-                                e("span", { className: "text-sm text-slate-400" }, "Patrimônio Total"),
-                                e("button", { onClick: () => setMostrarSaldo(!mostrarSaldo), className: "text-xs bg-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-700" }, mostrarSaldo ? "Ocultar" : "Mostrar")
-                            ),
-                            e("div", { className: "text-3xl font-black" }, mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••")
+
+                // Layout de Grid
+                React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' },
+                    // Coluna da Esquerda e Centro (Filtros e Cards)
+                    React.createElement('div', { className: 'lg:col-span-2 space-y-6' },
+                        // Card de Patrimônio Total
+                        React.createElement('div', { className: 'bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden' },
+                            React.createElement('p', { className: 'text-slate-400 text-sm' }, 'Patrimônio Total'),
+                            React.createElement('h2', { className: 'text-4xl font-black mt-1 text-white' }, `R$ ${patrimonioTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
                         ),
-                        e("div", { className: "flex flex-wrap gap-2" },
-                            categorias.map(cat => e("button", { key: cat, onClick: () => setCategoriaFiltro(cat), className: `px-3 py-2 rounded-xl text-xs font-bold border transition ${categoriaFiltro === cat ? "bg-emerald-500 border-emerald-500 text-white" : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"}` }, cat))
+
+                        // Filtros de Categoria
+                        React.createElement('div', { className: 'flex flex-wrap gap-2' },
+                            ["Todos", "Tesouro Direto", "CDB / CDI", "LCI / LCA", "FIIs", "Ações", "Cripto"].map(cat => 
+                                React.createElement('button', { key: cat, onClick: () => setFiltro(cat), className: `px-4 py-2 text-xs font-medium rounded-xl transition ${filtro === cat ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'}` }, cat)
+                            )
                         ),
-                        e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
-                            listaFiltrada.map(item => e("div", { key: item.id, onClick: () => setItemSelecionado(item), className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition ${itemSelecionado && itemSelecionado.id === item.id ? "border-emerald-500" : "border-transparent hover:border-slate-700"}` },
-                                e("div", { className: "flex justify-between" }, e("h3", { className: "font-bold text-white text-sm" }, item.nome), e("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${item.risco_cor}` }, item.risco)),
-                                e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800" }, e("span", { className: "font-extrabold text-white" }, `R$ ${Number(item.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`), e("span", { className: "text-xs text-emerald-400 font-bold" }, item.rentabilidade))
-                            ))
+
+                        // Lista de Investimentos
+                        React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-2 gap-4' },
+                            investimentosFiltrados.map(inv => 
+                                React.createElement('div', { 
+                                    key: inv.id, 
+                                    onClick: () => setInvestimentoSelecionado(inv),
+                                    className: `p-4 rounded-xl border cursor-pointer transition flex flex-col justify-between h-32 ${investimentoSelecionado?.id === inv.id ? 'bg-emerald-950/20 border-emerald-500' : 'bg-slate-900 border-slate-800 hover:border-slate-700'}` 
+                                },
+                                    React.createElement('div', { className: 'flex justify-between items-start' },
+                                        React.createElement('div', null,
+                                            React.createElement('h3', { className: 'font-bold text-sm text-white' }, inv.nome),
+                                            React.createElement('span', { className: 'text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded-full uppercase tracking-wider' }, inv.tipo)
+                                        ),
+                                        React.createElement('span', { className: `text-[10px] px-2 py-0.5 rounded font-bold ${inv.risco === 'Alto' || inv.risco === 'Muito Alto' ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}` }, inv.risco)
+                                    ),
+                                    React.createElement('div', { className: 'flex justify-between items-end mt-4' },
+                                        React.createElement('span', { className: 'text-xl font-bold' }, `R$ ${inv.valor.toLocaleString('pt-BR')}`),
+                                        React.createElement('span', { className: 'text-xs text-emerald-400' }, `+${inv.rentabilidade}`)
+                                    )
+                                )
+                            )
                         )
                     ),
-                    e("div", { className: "space-y-6" },
-                        itemSelecionado && e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-4" },
-                            e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
-                            e("div", { className: "pt-4 pb-2 bg-slate-950 rounded-xl" },
-                                e("svg", { viewBox: "0 0 100 30", className: "w-full h-16 text-emerald-400 stroke-current", fill: "none", strokeWidth: "2" }, e("polyline", { points: itemSelecionado.graficos[periodoGrafico] || "0,15 100,15" }))
+
+                    // Coluna da Direita (Gráfico Avançado e Simulador Temporal)
+                    React.createElement('div', { className: 'space-y-6' },
+                        React.createElement('div', { className: 'bg-slate-900 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between h-96' },
+                            React.createElement('div', { className: 'flex justify-between items-center' },
+                                React.createElement('div', null,
+                                    React.createElement('h3', { className: 'font-bold text-sm text-white' }, investimentoSelecionado ? `Histórico: ${investimentoSelecionado.nome}` : 'Histórico Consolidado'),
+                                    React.createElement('p', { className: 'text-xs text-slate-400' }, 'Simulação de rendimento com oscilação mercadológica')
+                                ),
+                                // Seletores de Período Temporal
+                                React.createElement('div', { className: 'flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800' },
+                                    ["1D", "5D", "1M", "6M", "1A"].map(p => 
+                                        React.createElement('button', { key: p, onClick: () => setPeriodo(p), className: `px-2 py-1 text-[10px] font-bold rounded ${periodo === p ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}` }, p)
+                                    )
+                                )
                             ),
-                            e("p", { className: "text-xs text-slate-300" }, itemSelecionado.desc_pratica)
-                        ),
-                        itemSelecionado && e("div", { className: "bg-emerald-950/3xl bg-emerald-900/20 border border-emerald-500/10 rounded-3xl p-6 space-y-4" },
-                            e("input", { type: "number", value: valorSimulado, onChange: (evt) => setValorSimulado(Number(evt.target.value)), className: "block w-full p-2.5 bg-slate-950 border border-slate-80
+
+                            // Área Gráfica Dinâmica (Gera linhas proporcionais aos dados do array)
+                            React.createElement('div', { className: 'h-48 flex items-end justify-between gap-1 pt-6 px-2 border-b border-slate-800 relative' },
+                                pontosGrafico.map((v, idx) => {
+                                    const min = Math.min(...pontosGrafico);
+                                    const max = Math.max(...pontosGrafico);
+                                    const delta = max - min || 1;
+                                    // Calcula a altura percentual de forma proporcional para fugir da linha reta estática
+                                    const alturaPercentual = ((v - min) / delta) * 80 + 10; 
+                                    
+                                    return React.createElement('div', { key: idx, className: 'flex-1 flex flex-col items-center h-full justify-end group relative' },
+                                        // Tooltip ao passar o mouse
+                                        React.createElement('span', { className: 'absolute bottom-full mb-2 bg-slate-950 border border-slate-800 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-10 pointer-events-none' }, 
+                                            `R$ ${v.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`
+                                        ),
+                                        // Barra/Ponto da Linha de Tendência
+                                        React.createElement('div', { 
+                                            style: { height: `${alturaPercentual}%` }, 
+                                            className: 'w-full bg-gradient-to-t from-emerald-500/5 to-emerald-400 rounded-t-sm group-hover:from-emerald-500/20 transition-all duration-300' 
+                                        })
+                                    );
+                                })
+                            ),
+
+                            // Calculadora de projeção simples no rodapé do card
+                            React.createElement('div', { className: 'bg-slate-950 border border-slate-800 p-3 rounded-xl flex justify-between text-xs mt-2' },
+                                React.createElement('div', null,
+                                    React.createElement('span', { className: 'text-slate-500 block' }, 'Projeção Mensal:'),
+                                    React.createElement('span', { className: 'font-bold text-emerald-400' }, `+ R$ ${(patrimonioTotal * 0.009).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`)
+                                ),
+                                React.createElement('div', { className: 'text-right' },
+                                    React.createElement('span', { className: 'text-slate-500 block' }, 'Projeção 1 Ano:'),
+                                    React.createElement('span', { className: 'font-bold text-emerald-400' }, `+ R$ ${(patrimonioTotal * 0.11).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}`)
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
