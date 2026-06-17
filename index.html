@@ -1,87 +1,337 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minhas Moedinhas</title>
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e2e8f0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Moedinhas</title>
+    <link rel="icon" href="https://fav.farm/🪙" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+    </style>
 </head>
-<body>
-  <div id="root"></div>
+<body class="text-slate-100">
+    <div id="root"></div>
 
-  <script>
-    const { useState, useEffect } = React;
-    const html = htm.bind(React.createElement);
-    
-    // Configurações do Supabase
-    const SUPABASE_URL = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
-    
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script>
+        const e = React.createElement;
+        const useState = React.useState;
+        const useEffect = React.useEffect;
 
-    function App() {
-      const [session, setSession] = useState(null);
-      const [loading, setLoading] = useState(true);
-      const [aporte, setAporte] = useState(0);
+        const USUARIO_CORRETO = "flavio";
+        const SENHA_CORRETA = "123";
+        const FOTO_PERFIL_URL = "https://github.com/flaviopavan.png";
 
-      useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          setSession(session);
-          if (session) fetchPortfolio(session.user.id);
-          setLoading(false);
-        });
+        const INVESTIMENTOS_DATA = [
+            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investimento mais seguro do país. Você empresta dinheiro para o Governo Federal. Ideal para segurança total e reserva de emergência.", ondeComo: "Qualquer banco ou corretora de valores via Tesouro Direto." },
+            { id: 2, nome: "CDB 110% (Grandes Bancos)", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para o banco. Possui a proteção do FGC (Fundo Garantidor de Crédito) para valores de até R$ 250 mil por CPF.", ondeComo: "Direto no aplicativo do seu banco digital ou corretora." },
+            { id: 3, nome: "Fundo Imobiliário (FII Grande Shopping)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.85% ao mês", taxaAnual: 0.1020, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Você compra pedacinhos de grandes shoppings ou galpões e recebe uma parte dos aluguéis na sua conta todo mês, livre de Imposto de Renda!", ondeComo: "Comprado na Bolsa (Home Broker) através de códigos como MXRF11, HGLG11 ou XPML11." },
+            { id: 4, nome: "Fundo Multimercado", categoria: "Fundos", valor: 1200.50, rentabilidade: "+7.20% a.a.", taxaAnual: 0.0720, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Gestores profissionais pegam seu dinheiro e distribuem em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas de investimento como XP, BTG ou Inter." },
+            { id: 5, nome: "Ações Itaú / Vale / Petrobras", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Seja sócio das maiores empresas do Brasil. Se elas lucrarem, você ganha dividendos; se o mercado tremer, o valor delas oscila.", ondeComo: "Através do Home Broker da sua corretora de preferência." },
+            { id: 6, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "Moeda digital do futuro. Potencial de lucro explosivo, mas com volatilidade extrema. Coloque apenas uma quantia pequena.", ondeComo: "Corretoras especializadas (Exchanges) ou ETFs de Cripto na Bolsa." }
+        ];
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          setSession(session);
-          if (session) fetchPortfolio(session.user.id);
-        });
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [usernameInput, setUsernameInput] = useState("");
+            const [passwordInput, setPasswordInput] = useState("");
+            const [loginError, setLoginError] = useState("");
+            const [usuarioLogado, setUsuarioLogado] = useState("");
 
-        return () => subscription.unsubscribe();
-      }, []);
+            const [mostrarSaldo, setMostrarSaldo] = useState(true);
+            const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
+            const [itemSelecionado, setItemSelecionado] = useState(INVESTIMENTOS_DATA[0]);
+            const [valorSimulado, setValorSimulado] = useState(1000);
 
-      async function fetchPortfolio(userId) {
-        const { data } = await supabase
-          .from('portfolios')
-          .select('aporte')
-          .eq('user_id', userId)
-          .single();
-        
-        if (data) setAporte(data.aporte);
-      }
+            useEffect(() => {
+                const sessionUser = localStorage.getItem("moedinhas_user");
+                if (sessionUser) {
+                    setIsLoggedIn(true);
+                    setUsuarioLogado(sessionUser);
+                }
+            }, []);
 
-      if (loading) return html`<div class="p-10 text-center">Carregando aplicação...</div>`;
+            const handleLogin = (eSubmit) => {
+                eSubmit.preventDefault();
+                if (usernameInput.trim().toLowerCase() === USUARIO_CORRETO && passwordInput === SENHA_CORRETA) {
+                    localStorage.setItem("moedinhas_user", usernameInput.trim());
+                    setUsuarioLogado(usernameInput.trim());
+                    setIsLoggedIn(true);
+                    setLoginError("");
+                } else {
+                    setLoginError("Usuário ou senha inválidos.");
+                }
+            };
 
-      return html`
-        <div class="max-w-md mx-auto p-6">
-          <header class="flex justify-between items-center mb-8">
-            <h1 class="text-2xl font-extrabold text-[#34d399]">💰 Minhas Moedinhas</h1>
-            ${session && html`<button class="text-xs text-slate-500 hover:text-white" onClick=${() => supabase.auth.signOut()}>Sair</button>`}
-          </header>
-          
-          ${!session 
-            ? html`<div class="p-6 bg-[#1a2233] rounded-2xl border border-slate-800 text-center">
-                     <p class="text-slate-400">Autenticação necessária para acessar seu portfólio.</p>
-                   </div>`
-            : html`
-              <div class="bg-[#1a2233] p-6 rounded-2xl border border-slate-800 shadow-xl">
-                <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Seu Aporte Atual</p>
-                <p class="text-4xl font-bold mt-2 text-white">R$ ${aporte.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-              </div>
-            `
-          }
-        </div>
-      `;
-    }
+            const handleLogout = () => {
+                localStorage.removeItem("moedinhas_user");
+                setIsLoggedIn(false);
+                setUsernameInput("");
+                setPasswordInput("");
+            };
 
-    ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
-  </script>
+            const totalSaldo = INVESTIMENTOS_DATA.reduce((acc, item) => acc + item.valor, 0);
+            const categorias = ["Todos", "Renda Fixa", "FIIs", "Fundos", "Ações", "Cripto"];
+            const listaFiltrada = categoriaFiltro === "Todos" 
+                ? INVESTIMENTOS_DATA 
+                : INVESTIMENTOS_DATA.filter(i => i.categoria === categoriaFiltro);
+
+            const rendimentoAnual = valorSimulado * itemSelecionado.taxaAnual;
+            const rendimentoMensalEstimado = rendimentoAnual / 12;
+            const totalFuturo = valorSimulado + rendimentoAnual;
+
+            const getIniciais = (nome) => {
+                if (!nome) return "U";
+                return nome.substring(0, 2).toUpperCase();
+            };
+
+            // TELA DE LOGIN
+            if (!isLoggedIn) {
+                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
+                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
+                        e("div", { className: "text-center space-y-2" },
+                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 mb-2 text-2xl" }, "🪙"),
+                            e("h1", { className: "text-2xl font-black tracking-tight text-white" }, 
+                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
+                            ),
+                            e("p", { className: "text-sm text-slate-400" }, "Faça login para acessar o seu simulador premium")
+                        ),
+
+                        e("form", { onSubmit: handleLogin, className: "space-y-4" },
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Usuário"),
+                                e("input", {
+                                    type: "text",
+                                    required: true,
+                                    placeholder: "Ex: flavio",
+                                    value: usernameInput,
+                                    onChange: (evt) => setUsernameInput(evt.target.value),
+                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
+                                })
+                            ),
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Senha"),
+                                e("input", {
+                                    type: "password",
+                                    required: true,
+                                    placeholder: "••••••",
+                                    value: passwordInput,
+                                    onChange: (evt) => setPasswordInput(evt.target.value),
+                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
+                                })
+                            ),
+
+                            loginError && e("p", { className: "text-xs font-semibold text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, loginError),
+
+                            e("button", {
+                                type: "submit",
+                                className: "w-full py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition mt-2"
+                            }, "Entrar na Carteira")
+                        ),
+                        e("div", { className: "text-center" },
+                            e("p", { className: "text-[11px] text-slate-500" }, "Dica técnica: use o usuário 'flavio' e senha '123'")
+                        )
+                    )
+                );
+            }
+
+            // Renderização do Bloco de Resultados do Simulador (Corrigido fora do return principal)
+            const renderResultadosSimulador = () => {
+                if (itemSelecionado.categoria === "FIIs") {
+                    return e("div", { className: "pt-3 border-t border-emerald-800/60 space-y-2" },
+                        e("div", { className: "bg-emerald-900/30 p-2.5 rounded-xl border border-emerald-800" },
+                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "💰 Pinga na conta todo mês (Aluguel)"),
+                            e("span", { className: "text-lg font-black text-yellow-300" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                        ),
+                        e("div", { className: "grid grid-cols-2 gap-2 text-xs" },
+                            e("div", null,
+                                e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Total no Ano"),
+                                e("span", { className: "font-bold text-white" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                            ),
+                            e("div", null,
+                                e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Acúmulo Total"),
+                                e("span", { className: "font-bold text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                            )
+                        )
+                    );
+                } else {
+                    return e("div", { className: "pt-3 border-t border-emerald-800/60 grid grid-cols-2 gap-2" },
+                        e("div", null,
+                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Rendimento (1 Ano)"),
+                            e("span", { className: "text-base font-black text-emerald-300" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                        ),
+                        e("div", null,
+                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Valor Total Final"),
+                            e("span", { className: "text-base font-black text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                        )
+                    );
+                }
+            };
+
+            // DASHBOARD PRINCIPAL
+            return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
+                e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
+                    e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
+                        e("div", { className: "flex items-center gap-2" },
+                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold shadow-md shadow-emerald-500/20" }, "🪙"),
+                            e("span", { className: "font-extrabold text-xl text-white" }, 
+                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
+                            )
+                        ),
+                        
+                        e("div", { className: "flex items-center gap-3" },
+                            e("div", { className: "flex items-center gap-2 bg-slate-950 pl-3 pr-1 py-1 rounded-full border border-slate-800" },
+                                e("span", { className: "text-xs font-bold text-slate-300 hidden sm:inline capitalize" }, usuarioLogado),
+                                usuarioLogado.toLowerCase() === USUARIO_CORRETO ?
+                                e("img", { 
+                                    src: FOTO_PERFIL_URL, 
+                                    alt: "Avatar",
+                                    className: "w-8 h-8 rounded-full border border-emerald-500 shadow-sm"
+                                }) :
+                                e("div", { className: "w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs" }, 
+                                    getIniciais(usuarioLogado)
+                                )
+                            ),
+                            e("button", {
+                                onClick: handleLogout,
+                                className: "text-xs font-bold text-slate-400 hover:text-rose-400 p-2 rounded-lg transition"
+                            }, "Sair")
+                        )
+                    )
+                ),
+
+                e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
+                    e("div", { className: "md:col-span-2 space-y-6" },
+                        e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800" },
+                            e("div", { className: "flex justify-between items-center mb-2" },
+                                e("span", { className: "text-sm text-slate-400 font-medium" }, "Patrimônio Total Simulado"),
+                                e("button", { 
+                                    onClick: () => setMostrarSaldo(!mostrarSaldo),
+                                    className: "text-slate-300 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition border border-slate-700"
+                                }, mostrarSaldo ? "Ocultar Saldo" : "Mostrar Saldo")
+                            ),
+                            e("div", { className: "text-3xl font-black tracking-tight mb-2 text-white" }, 
+                                mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••"
+                            ),
+                            e("p", { className: "text-xs text-emerald-400 font-medium flex items-center gap-1" }, "📈 Carteira diversificada com os melhores ativos do mercado.")
+                        ),
+
+                        e("div", { className: "space-y-2" },
+                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Filtrar por Tipo"),
+                            e("div", { className: "flex flex-wrap gap-2" },
+                                categorias.map(cat => 
+                                    e("button", {
+                                        key: cat,
+                                        onClick: () => setCategoriaFiltro(cat),
+                                        className: `px-4 py-2 rounded-xl text-xs font-bold transition border ${
+                                            categoriaFiltro === cat 
+                                                ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/10" 
+                                                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
+                                        }`
+                                    }, cat)
+                                )
+                            )
+                        ),
+
+                        e("div", { className: "space-y-3" },
+                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Onde o dinheiro está alocado"),
+                            e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
+                                listaFiltrada.map(item => 
+                                    e("div", {
+                                        key: item.id,
+                                        onClick: () => setItemSelecionado(item),
+                                        className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between min-h-[150px] h-full ${
+                                            itemSelecionado.id === item.id 
+                                                ? "border-emerald-500 bg-emerald-950/10 shadow-lg shadow-emerald-500/5" 
+                                                : "border-slate-850 bg-slate-900 hover:border-slate-700"
+                                        }`
+                                    }, 
+                                        e("div", { className: "space-y-1" },
+                                            e("div", { className: "flex justify-between items-start gap-2" },
+                                                e("h3", { className: "font-bold text-white text-sm sm:text-base leading-tight flex-1" }, item.nome),
+                                                e("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${item.riscoCor}` }, item.risco)
+                                            ),
+                                            e("span", { className: "text-xs text-slate-400 font-medium block" }, item.categoria)
+                                        ),
+                                        e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800/60" },
+                                            e("div", null,
+                                                e("span", { className: "text-[10px] text-slate-400 block uppercase font-bold" }, "Valor"),
+                                                e("span", { className: "font-extrabold text-white text-base" }, `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
+                                            ),
+                                            e("span", { className: "text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg shrink-0 border border-emerald-500/20" }, item.rentabilidade)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+
+                    e("div", { className: "space-y-6" },
+                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4" },
+                            e("div", { className: "flex items-center gap-2" },
+                                e("span", { className: "text-xl" }, "💡"),
+                                e("h2", { className: "font-extrabold text-white text-lg" }, "Guia Prático")
+                            ),
+                            e("div", { className: "bg-slate-950 rounded-2xl p-4 border border-slate-800" },
+                                e("span", { className: "text-[10px] uppercase font-bold text-slate-500 block mb-1" }, "Selecionado"),
+                                e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
+                                e("div", { className: "mt-2 flex gap-2" },
+                                    e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md border border-slate-700" }, itemSelecionado.categoria),
+                                    e("span", { className: `text-xs font-bold px-2.5 py-0.5 rounded-md ${itemSelecionado.riscoCor}` }, `Risco ${itemSelecionado.risco}`)
+                                )
+                            ),
+                            e("div", { className: "space-y-3" },
+                                e("div", null,
+                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
+                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.desc)
+                                ),
+                                e("div", null,
+                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "Como investir?"),
+                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
+                                )
+                            )
+                        ),
+
+                        e("div", { className: "bg-emerald-950 text-white rounded-3xl p-6 shadow-2xl space-y-4 border border-emerald-800/50 shadow-emerald-950/20" },
+                            e("div", { className: "flex items-center gap-2" },
+                                e("span", { className: "text-xl" }, "🧮"),
+                                e("h2", { className: "font-extrabold text-lg text-emerald-50" }, "Simulador de Ganhos")
+                            ),
+                            e("div", { className: "space-y-1.5" },
+                                e("label", { className: "text-xs text-emerald-400 font-bold uppercase tracking-wider" }, "Quanto quer simular?"),
+                                e("div", { className: "relative rounded-xl shadow-sm" },
+                                    e("div", { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
+                                        e("span", { className: "text-emerald-500 font-bold text-sm" }, "R$")
+                                    ),
+                                    e("input", {
+                                        type: "number",
+                                        value: valorSimulado,
+                                        onChange: (evt) => setValorSimulado(Number(evt.target.value)),
+                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                    })
+                                )
+                            ),
+                            
+                            renderResultadosSimulador(),
+                            
+                            e("p", { className: "text-[11px] text-emerald-400/70 italic leading-snug" }, 
+                                `Estimativa calculada sobre a taxa de ${itemSelecionado.rentabilidade} recomendada.`
+                            )
+                        )
+                    )
+                ),
+
+                e("footer", { className: "bg-slate-900 text-center py-4 text-xs text-slate-500 font-medium border-t border-slate-800 mt-8" },
+                    "Minhas Moedinhas © 2026"
+                )
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(e(App));
+    </script>
 </body>
 </html>
