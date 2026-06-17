@@ -3,44 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minhas Moedinhas - Versão Gráficos</title>
+  <title>Minhas Moedinhas</title>
   <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.3/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState } = React;
-    const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
     function App() {
-      const data = [
-        { name: 'Jan', valor: 1000 },
-        { name: 'Fev', valor: 1500 },
-        { name: 'Mar', valor: 2200 },
-        { name: 'Abr', valor: 2800 },
+      const [valor, setValor] = useState('');
+      const [simulacao, setSimulacao] = useState(null);
+      const [cardAtivo, setCardAtivo] = useState(null);
+
+      const oportunidades = [
+        { nome: 'Tesouro Selic 2029', rentabilidade: '10.5% a.a', risco: 'Baixo', detalhe: 'Ideal para reserva de emergência. Liquidez diária e segurança total.' },
+        { nome: 'MXRF11 (FII)', rentabilidade: '9.8% a.a', risco: 'Moderado', detalhe: 'Fundo imobiliário de papel. Ótimo para quem busca dividendos mensais isentos de IR.' },
+        { nome: 'PETR4 (Ação)', rentabilidade: 'Dividendo alto', risco: 'Alto', detalhe: 'Empresa estatal com histórico de altos dividendos, mas sujeita a oscilações políticas.' }
       ];
+
+      const calcular = () => {
+        const v = parseFloat(valor);
+        if (!v) return;
+        setSimulacao({
+          fiis: (v * 0.4).toFixed(2),
+          rendaFixa: (v * 0.5).toFixed(2),
+          acoes: (v * 0.1).toFixed(2)
+        });
+      };
 
       return (
         <div className="max-w-4xl mx-auto p-6">
           <h1 className="text-3xl font-bold text-emerald-400 mb-6">Minhas Moedinhas</h1>
-          
+
+          {/* Simulador */}
           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-8">
-            <h2 className="text-lg font-bold mb-4 text-indigo-400">Evolução do Patrimônio</h2>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="name" stroke="#94a3b8" />
-                  <YAxis stroke="#94a3b8" />
-                  <Tooltip contentStyle={{backgroundColor: '#0f172a', border: '1px solid #334155'}} />
-                  <Line type="monotone" dataKey="valor" stroke="#10b981" strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
+            <h2 className="text-lg font-bold mb-4">Simulador de Aporte</h2>
+            <div className="flex gap-2">
+              <input type="number" onChange={(e) => setValor(e.target.value)} placeholder="Valor (R$)" className="w-full p-3 bg-slate-950 rounded-lg border border-slate-600"/>
+              <button onClick={calcular} className="bg-indigo-600 px-6 rounded-lg font-bold hover:bg-indigo-500">Simular</button>
+            </div>
+            {simulacao && (
+              <div className="mt-4 p-4 bg-slate-900 rounded-lg text-sm grid grid-cols-3 gap-2 text-center border border-slate-700">
+                <div><p className="text-slate-400 text-xs">FIIs (40%)</p><p className="font-bold text-emerald-400">R$ {simulacao.fiis}</p></div>
+                <div><p className="text-slate-400 text-xs">Renda Fixa (50%)</p><p className="font-bold text-emerald-400">R$ {simulacao.rendaFixa}</p></div>
+                <div><p className="text-slate-400 text-xs">Ações (10%)</p><p className="font-bold text-emerald-400">R$ {simulacao.acoes}</p></div>
+              </div>
+            )}
+          </div>
+
+          {/* Top 3 Interativo */}
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4 text-indigo-400">Top 3 Oportunidades da Semana</h2>
+            <div className="grid gap-3">
+              {oportunidades.map((op, i) => (
+                <div key={i} onClick={() => setCardAtivo(cardAtivo === i ? null : i)} className="bg-slate-800 p-4 rounded-xl border border-indigo-500 cursor-pointer hover:bg-slate-700 transition-all">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold">{op.nome}</h3>
+                      <p className="text-xs text-slate-400">Clique para detalhes</p>
+                    </div>
+                    <span className="text-emerald-400 font-bold">{op.rentabilidade}</span>
+                  </div>
+                  {cardAtivo === i && (
+                    <div className="mt-4 pt-4 border-t border-slate-600 text-slate-300 text-sm animate-pulse">
+                      {op.detalhe}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
