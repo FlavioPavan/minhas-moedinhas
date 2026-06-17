@@ -4,83 +4,100 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Minhas Moedinhas</title>
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.3/babel.min.js"></script>
+  <script crossorigin
+    integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8"
+    src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin
+    integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh"
+    src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin
+    integrity="sha384-toVdrLSMaw7Y55MowcKqkmFL/Ek6Sky62NOk0b5sDDZBu2wcoPyyQUt9unDVjXhL"
+    src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100">
   <div id="root"></div>
-
-  <script type="text/babel">
+  <script>
     const { useState } = React;
-
+    const html = htm.bind(React.createElement);
+    // Dados do gráfico (fora do componente: não recria a cada render)
+    const HISTORICO = [
+      { mes: 'Jan', valor: 4000 },
+      { mes: 'Fev', valor: 5500 },
+      { mes: 'Mar', valor: 8200 },
+      { mes: 'Abr', valor: 12000 },
+      { mes: 'Mai', valor: 15500 },
+      { mes: 'Jun', valor: 20550 },
+    ];
+    const MAX_VALOR = Math.max(...HISTORICO.map((h) => h.valor));
+    // Alocação centralizada: lógica e rótulo nunca saem de sincronia
+    const ALOCACAO = [
+      { nome: 'FIIs', pct: 0.4 },
+      { nome: 'Renda Fixa', pct: 0.5 },
+      { nome: 'Ações', pct: 0.1 },
+    ];
     function App() {
       const [valor, setValor] = useState('');
-      const [simulacao, setSimulacao] = useState(null);
-      const [cardAtivo, setCardAtivo] = useState(null);
-
-      // Dados para o nosso gráfico personalizado
-      const historico = [
-        { mes: 'Jan', valor: 4000 },
-        { mes: 'Fev', valor: 5500 },
-        { mes: 'Mar', valor: 8200 },
-        { mes: 'Abr', valor: 12000 },
-        { mes: 'Mai', valor: 15500 },
-        { mes: 'Jun', valor: 20550 }
-      ];
-
+      const [resultado, setResultado] = useState(null); // valor numérico simulado
       const calcular = () => {
         const v = parseFloat(valor);
-        if (!v) return;
-        setSimulacao({
-          fiis: (v * 0.4).toFixed(2),
-          rendaFixa: (v * 0.5).toFixed(2),
-          acoes: (v * 0.1).toFixed(2)
-        });
+        if (Number.isNaN(v) || v <= 0) return; // ignora vazio, texto e negativos
+        setResultado(v);
       };
-
-      return (
+      return html`
         <div className="max-w-4xl mx-auto p-6">
           <h1 className="text-3xl font-bold text-emerald-400 mb-6">Minhas Moedinhas</h1>
-
-          {/* Gráfico customizado (Sem dependências externas) */}
+          <!-- Gráfico customizado (sem dependências externas) -->
           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-8">
             <h2 className="text-lg font-bold mb-6 text-indigo-400">Evolução do Patrimônio</h2>
             <div className="flex items-end justify-between h-40 gap-2 px-2 border-b border-l border-slate-700 pb-2">
-              {historico.map((item, i) => (
-                <div key={i} className="flex flex-col items-center group w-full">
-                  <div 
-                    className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-400 transition-all" 
-                    style={{ height: `${(item.valor / 22000) * 100}%` }}
+              ${HISTORICO.map((item) => html`
+                <div key=${item.mes} className="flex flex-col items-center group w-full">
+                  <div
+                    className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-400 transition-all"
+                    style=${{ height: `${(item.valor / MAX_VALOR) * 100}%` }}
+                    title=${'R$ ' + item.valor.toLocaleString('pt-BR')}
                   ></div>
-                  <span className="text-[10px] mt-2 text-slate-400">{item.mes}</span>
+                  <span className="text-[10px] mt-2 text-slate-400">${item.mes}</span>
                 </div>
-              ))}
+              `)}
             </div>
           </div>
-
-          {/* Simulador */}
+          <!-- Simulador -->
           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-8">
             <h2 className="text-lg font-bold mb-4">Simulador de Aporte</h2>
             <div className="flex gap-2">
-              <input type="number" onChange={(e) => setValor(e.target.value)} placeholder="Valor (R$)" className="w-full p-3 bg-slate-950 rounded-lg border border-slate-600"/>
-              <button onClick={calcular} className="bg-indigo-600 px-6 rounded-lg font-bold hover:bg-indigo-500">Simular</button>
+              <input
+                type="number"
+                min="0"
+                value=${valor}
+                onChange=${(e) => setValor(e.target.value)}
+                onKeyDown=${(e) => e.key === 'Enter' && calcular()}
+                placeholder="Valor (R$)"
+                aria-label="Valor do aporte em reais"
+                className="w-full p-3 bg-slate-950 rounded-lg border border-slate-600"
+              />
+              <button
+                onClick=${calcular}
+                className="bg-indigo-600 px-6 rounded-lg font-bold hover:bg-indigo-500"
+              >Simular</button>
             </div>
-            {simulacao && (
+            ${resultado !== null && html`
               <div className="mt-4 p-4 bg-slate-900 rounded-lg text-sm grid grid-cols-3 gap-2 text-center border border-slate-700">
-                <div><p className="text-slate-400 text-xs">FIIs (40%)</p><p className="font-bold text-emerald-400">R$ {simulacao.fiis}</p></div>
-                <div><p className="text-slate-400 text-xs">Renda Fixa (50%)</p><p className="font-bold text-emerald-400">R$ {simulacao.rendaFixa}</p></div>
-                <div><p className="text-slate-400 text-xs">Ações (10%)</p><p className="font-bold text-emerald-400">R$ {simulacao.acoes}</p></div>
+                ${ALOCACAO.map((a) => html`
+                  <div key=${a.nome}>
+                    <p className="text-slate-400 text-xs">${a.nome} (${a.pct * 100}%)</p>
+                    <p className="font-bold text-emerald-400">R$ ${(resultado * a.pct).toFixed(2)}</p>
+                  </div>
+                `)}
               </div>
-            )}
+            `}
           </div>
         </div>
-      );
+      `;
     }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
   </script>
 </body>
 </html>
+ 
