@@ -24,18 +24,13 @@
         const useState = React.useState;
         const useEffect = React.useEffect;
 
-        // Captura automática de chaves via URL ou LocalStorage para o GitHub Pages
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlBanco = urlParams.get('url') || localStorage.getItem('db_url') || "";
-        const keyBanco = urlParams.get('key') || localStorage.getItem('db_key') || "";
+        // =======================================================
+        // CONFIGURAÇÃO FIXA E CENTRALIZADA DO BANCO DE DADOS
+        // =======================================================
+        const urlBanco = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
+        const keyBanco = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjYyNjEsImV4cCI6MjA5NzI0MjI2MX0.ntq4ABMCXOhvjI-yU5XH7bclEGMVY0_72Admuid1Zn4';
 
-        if (urlParams.get('url')) localStorage.setItem('db_url', urlParams.get('url'));
-        if (urlParams.get('key')) localStorage.setItem('db_key', urlParams.get('key'));
-
-        let supabaseClient = null;
-        if (urlBanco && keyBanco) {
-            supabaseClient = supabase.createClient(urlBanco, keyBanco);
-        }
+        const supabaseClient = supabase.createClient(urlBanco, keyBanco);
 
         const DATASET_PADRAO = [
             { nome: "Tesouro Selic 2027", categoria: "Tesouro Direto", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investmento mais seguro do país. Ideal para reserva de emergência.", ondeComo: "Qualquer banco ou corretora via Tesouro Direto.", graficos: { "1D": "0,25 20,24 40,23 60,24 80,25 100,26", "5D": "0,20 20,22 40,23 60,25 80,24 100,26", "1M": "0,25 20,20 40,18 60,15 80,12 100,5", "6M": "0,28 20,22 40,18 60,14 80,8 100,2" } },
@@ -47,25 +42,13 @@
         ];
 
         function App() {
-            if (!supabaseClient) {
-                return e("div", { className: "min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 text-center" },
-                    e("div", { className: "max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4" },
-                        e("span", { className: "text-4xl" }, "🔑"),
-                        e("h1", { className: "text-xl font-bold text-white" }, "Configuração do Banco Pendente"),
-                        e("p", { className: "text-sm text-slate-400" }, "Para conectar este app ao seu banco de dados, passe os parâmetros 'url' e 'key' na URL do seu navegador. Exemplo:"),
-                        e("div", { className: "bg-slate-950 p-3 rounded-xl text-xs font-mono text-emerald-400 break-all select-all" }, 
-                            window.location.origin + window.location.pathname + "?url=SUA_URL&key=SUA_CHAVE"
-                        )
-                    )
-                );
-            }
-
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
             const [emailInput, setEmailInput] = useState("");
             const [passwordInput, setPasswordInput] = useState("");
             const [authError, setAuthError] = useState("");
             const [authLoading, setAuthLoading] = useState(false);
+            const [isSignUp, setIsSignUp] = useState(false); // Novo estado para controlar Login/Cadastro
             const [investimentos, setInvestimentos] = useState([]);
             const [mostrarSaldo, setMostrarSaldo] = useState(true);
             const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
@@ -127,14 +110,26 @@
                 setAuthError("");
                 setAuthLoading(true);
                 const email = emailInput.trim();
-                
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
 
-                if (error) {
-                    if (error.status === 400 && !error.message.includes("Invalid login credentials")) {
-                        const { error: signUpError } = await supabaseClient.auth.signUp({ email, password: passwordInput });
-                        if (signUpError) { setAuthError(signUpError.message); setAuthLoading(false); }
+                if (passwordInput.length < 6) {
+                    setAuthError("A senha precisa ter pelo menos 6 caracteres.");
+                    setAuthLoading(false);
+                    return;
+                }
+
+                if (isSignUp) {
+                    // Executa a criação de uma nova conta
+                    const { data, error } = await supabaseClient.auth.signUp({ email, password: passwordInput });
+                    if (error) {
+                        setAuthError("Erro ao cadastrar: " + error.message);
+                        setAuthLoading(false);
                     } else {
+                        alert("Conta criada com sucesso! Você já está logado.");
+                    }
+                } else {
+                    // Executa o login tradicional
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: passwordInput });
+                    if (error) {
                         setAuthError("E-mail ou senha incorretos.");
                         setAuthLoading(false);
                     }
@@ -149,9 +144,9 @@
                         e("div", { className: "text-center space-y-2" },
                             e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg text-2xl" }, "🪙"),
                             e("h1", { className: "text-2xl font-black text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")),
-                            e("p", { className: "text-sm text-slate-400" }, "Insira seus dados para sincronizar sua carteira.")
+                            e("p", { className: "text-sm text-slate-400" }, isSignUp ? "Crie sua conta para começar a investir." : "Insira seus dados para sincronizar sua carteira.")
                         ),
-                        e("form", { onSubmit: handleAuth, className: "space-y-4" },
+                        e("form", { onSubmit: handleAuth, className: "space-y-4 flex flex-col" },
                             e("div", { className: "space-y-1" },
                                 e("label", { className: "text-xs text-slate-400 font-bold uppercase" }, "E-mail"),
                                 e("input", { type: "email", required: true, placeholder: "seu@email.com", value: emailInput, onChange: (evt) => setEmailInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
@@ -161,7 +156,13 @@
                                 e("input", { type: "password", required: true, placeholder: "Mínimo 6 caracteres", value: passwordInput, onChange: (evt) => setPasswordInput(evt.target.value), className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-emerald-500" })
                             ),
                             authError && e("p", { className: "text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, authError),
-                            e("button", { type: "submit", disabled: authLoading, className: "w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition" }, authLoading ? "Acessando..." : "Entrar / Cadastrar")
+                            e("button", { type: "submit", disabled: authLoading, className: "w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg transition hover:bg-emerald-600" }, 
+                                authLoading ? "Processando..." : (isSignUp ? "Cadastrar Nova Conta" : "Entrar no Sistema")
+                            ),
+                            // O Botão menor dinâmico solicitado:
+                            e("button", { type: "button", onClick: () => { setIsSignUp(!isSignUp); setAuthError(""); }, className: "text-xs text-slate-400 hover:text-slate-200 mt-2 underline transition text-center bg-transparent border-none cursor-pointer" }, 
+                                isSignUp ? "Já tem uma conta? Faça o Login" : "Não tem uma conta? Cadastre-se aqui"
+                            )
                         )
                     )
                 );
@@ -181,8 +182,8 @@
                             e("span", { className: "font-extrabold text-xl text-white" }, "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas"))
                         ),
                         e("div", { className: "flex items-center gap-3" },
-                            e("span", { className: "text-xs text-slate-400 max-w-[120px] truncate" }, user.email),
-                            e("button", { onClick: () => { supabaseClient.auth.signOut(); setUser(null); }, className: "text-xs font-bold text-rose-400" }, "Sair")
+                            e("span", { className: "text-xs text-slate-400 max-w-[150px] truncate" }, user.email),
+                            e("button", { onClick: () => { supabaseClient.auth.signOut(); setUser(null); }, className: "text-xs font-bold text-rose-400 hover:underline" }, "Sair")
                         )
                     )
                 ),
@@ -191,15 +192,15 @@
                         e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800" },
                             e("div", { className: "flex justify-between items-center mb-2" },
                                 e("span", { className: "text-sm text-slate-400" }, "Patrimônio Total"),
-                                e("button", { onClick: () => setMostrarSaldo(!mostrarSaldo), className: "text-xs bg-slate-800 px-2.5 py-1.5 rounded-lg" }, mostrarSaldo ? "Ocultar" : "Mostrar")
+                                e("button", { onClick: () => setMostrarSaldo(!mostrarSaldo), className: "text-xs bg-slate-800 px-2.5 py-1.5 rounded-lg hover:bg-slate-700" }, mostrarSaldo ? "Ocultar" : "Mostrar")
                             ),
                             e("div", { className: "text-3xl font-black" }, mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••")
                         ),
                         e("div", { className: "flex flex-wrap gap-2" },
-                            categorias.map(cat => e("button", { key: cat, onClick: () => setCategoriaFiltro(cat), className: `px-3 py-2 rounded-xl text-xs font-bold border ${categoriaFiltro === cat ? "bg-emerald-500 text-white" : "bg-slate-900 text-slate-300"}` }, cat))
+                            categorias.map(cat => e("button", { key: cat, onClick: () => setCategoriaFiltro(cat), className: `px-3 py-2 rounded-xl text-xs font-bold border transition ${categoriaFiltro === cat ? "bg-emerald-500 border-emerald-500 text-white" : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"}` }, cat))
                         ),
                         e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
-                            listaFiltrada.map(item => e("div", { key: item.id, onClick: () => setItemSelecionado(item), className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer ${itemSelecionado && itemSelecionado.id === item.id ? "border-emerald-500" : "border-transparent"}` },
+                            listaFiltrada.map(item => e("div", { key: item.id, onClick: () => setItemSelecionado(item), className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition ${itemSelecionado && itemSelecionado.id === item.id ? "border-emerald-500" : "border-transparent hover:border-slate-700"}` },
                                 e("div", { className: "flex justify-between" }, e("h3", { className: "font-bold text-white text-sm" }, item.nome), e("span", { className: `text-[9px] font-bold px-2 py-0.5 rounded-full ${item.risco_cor}` }, item.risco)),
                                 e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800" }, e("span", { className: "font-extrabold text-white" }, `R$ ${Number(item.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`), e("span", { className: "text-xs text-emerald-400 font-bold" }, item.rentabilidade))
                             ))
@@ -213,19 +214,5 @@
                             ),
                             e("p", { className: "text-xs text-slate-300" }, itemSelecionado.desc_pratica)
                         ),
-                        itemSelecionado && e("div", { className: "bg-emerald-950 rounded-3xl p-6 space-y-4" },
-                            e("input", { type: "number", value: valorSimulado, onChange: (evt) => setValorSimulado(Number(evt.target.value)), className: "block w-full p-2.5 bg-slate-950 rounded-xl text-white font-extrabold text-center" }),
-                            e("div", { className: "text-xs space-y-1 text-emerald-100" },
-                                e("div", { className: "flex justify-between" }, e("span", null, "Mensal:"), e("span", { className: "font-bold" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)),
-                                e("div", { className: "flex justify-between" }, e("span", null, "Anual:"), e("span", { className: "font-bold" }, `R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`))
-                            )
-                        )
-                    )
-                )
-            );
-        }
-
-        ReactDOM.createRoot(document.getElementById('root')).render(e(App));
-    </script>
-</body>
-</html>
+                        itemSelecionado && e("div", { className: "bg-emerald-950/3xl bg-emerald-900/20 border border-emerald-500/10 rounded-3xl p-6 space-y-4" },
+                            e("input", { type: "number", value: valorSimulado, onChange: (evt) => setValorSimulado(Number(evt.target.value)), className: "block w-full p-2.5 bg-slate-950 border border-slate-80
