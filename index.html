@@ -1,25 +1,87 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Teste Supabase</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minhas Moedinhas</title>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e2e8f0; }
+  </style>
 </head>
-<body style="background: #0d1117; color: white; font-family: sans-serif; padding: 20px;">
-  <h1>Testando conexão...</h1>
-  <div id="status"></div>
+<body>
+  <div id="root"></div>
 
   <script>
-    const url = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-    const key = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
+    const { useState, useEffect } = React;
+    const html = htm.bind(React.createElement);
     
-    try {
-      const supabase = window.supabase.createClient(url, key);
-      document.getElementById('status').innerHTML = '<h2 style="color: #34d399;">Supabase carregado com sucesso! ✅</h2>';
-      console.log("Supabase cliente:", supabase);
-    } catch (e) {
-      document.getElementById('status').innerHTML = '<h2 style="color: red;">Erro ao carregar Supabase: ' + e.message + '</h2>';
+    // Configurações do Supabase
+    const SUPABASE_URL = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function App() {
+      const [session, setSession] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [aporte, setAporte] = useState(0);
+
+      useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          if (session) fetchPortfolio(session.user.id);
+          setLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setSession(session);
+          if (session) fetchPortfolio(session.user.id);
+        });
+
+        return () => subscription.unsubscribe();
+      }, []);
+
+      async function fetchPortfolio(userId) {
+        const { data } = await supabase
+          .from('portfolios')
+          .select('aporte')
+          .eq('user_id', userId)
+          .single();
+        
+        if (data) setAporte(data.aporte);
+      }
+
+      if (loading) return html`<div class="p-10 text-center">Carregando aplicação...</div>`;
+
+      return html`
+        <div class="max-w-md mx-auto p-6">
+          <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-extrabold text-[#34d399]">💰 Minhas Moedinhas</h1>
+            ${session && html`<button class="text-xs text-slate-500 hover:text-white" onClick=${() => supabase.auth.signOut()}>Sair</button>`}
+          </header>
+          
+          ${!session 
+            ? html`<div class="p-6 bg-[#1a2233] rounded-2xl border border-slate-800 text-center">
+                     <p class="text-slate-400">Autenticação necessária para acessar seu portfólio.</p>
+                   </div>`
+            : html`
+              <div class="bg-[#1a2233] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Seu Aporte Atual</p>
+                <p class="text-4xl font-bold mt-2 text-white">R$ ${aporte.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+              </div>
+            `
+          }
+        </div>
+      `;
     }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
   </script>
 </body>
 </html>
