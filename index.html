@@ -1,64 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minhas Moedinhas</title>
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>Teste Supabase</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e2e8f0; }
-  </style>
 </head>
-<body>
-  <div id="root"></div>
+<body style="background: #0d1117; color: white; font-family: sans-serif; padding: 20px;">
+  <h1>Testando conexão...</h1>
+  <div id="status"></div>
 
   <script>
-    const { useState, useEffect } = React;
-    const html = htm.bind(React.createElement);
-
-    const SUPABASE_URL = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    function App() {
-      const [session, setSession] = useState(null);
-
-      useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-        supabase.auth.onAuthStateChange((_event, session) => setSession(session));
-      }, []);
-
-      if (!session) {
-        return html`
-          <div class="min-h-screen flex flex-col items-center justify-center p-4">
-            <h1 class="text-3xl font-extrabold text-[#34d399] mb-8">💰 Minhas Moedinhas</h1>
-            <button onClick=${() => supabase.auth.signInWithOAuth({ provider: 'google' })} 
-                    class="bg-white text-black px-6 py-3 rounded-xl font-bold">
-              Entrar com Google
-            </button>
-          </div>
-        `;
-      }
-
-      return html`
-        <div class="p-6 max-w-md mx-auto">
-          <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-bold text-[#34d399]">💰 Bem-vindo, Investidor</h1>
-            <button onClick=${() => supabase.auth.signOut()} class="text-xs text-red-400">Sair</button>
-          </div>
-          <div class="bg-[#1a2233] p-6 rounded-2xl border border-slate-800">
-            <p>Conectado ao banco de dados com sucesso! ✅</p>
-          </div>
-        </div>
-      `;
+    const url = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
+    const key = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
+    
+    try {
+      const supabase = window.supabase.createClient(url, key);
+      document.getElementById('status').innerHTML = '<h2 style="color: #34d399;">Supabase carregado com sucesso! ✅</h2>';
+      console.log("Supabase cliente:", supabase);
+    } catch (e) {
+      document.getElementById('status').innerHTML = '<h2 style="color: red;">Erro ao carregar Supabase: ' + e.message + '</h2>';
     }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
   </script>
 </body>
 </html>
