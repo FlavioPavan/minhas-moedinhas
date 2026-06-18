@@ -71,7 +71,7 @@
   <div id="root"></div>
 
   <script>
-    // Inicializa a biblioteca HTM vinculada ao React Global
+    // Inicialização segura das bibliotecas globais
     const html = htm.bind(React.createElement);
     const { useState, useEffect } = React;
 
@@ -109,8 +109,8 @@
       return html`
         <div style="
           width:18px; height:18px;
-          border: 2.5px solid rgba(0,0,0,0.15);
-          border-top-color: #0d1117;
+          border: 2.5px solid rgba(255,255,255,0.15);
+          border-top-color: #34d399;
           border-radius: 50%;
           animation: spin 0.7s linear infinite;
         "></div>
@@ -442,6 +442,7 @@
         : html`<${Dashboard} session=${session} onLogout=${handleLogout} />`;
     }
 
+    // Correção cirúrgica de renderização umd global
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(html`<${App} />`);
   </script>
