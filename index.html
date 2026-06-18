@@ -68,36 +68,27 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0d1117; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
-    #root:empty::before {
-      content: '';
-    }
   </style>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
        SCRIPTS GLOBAIS UMD — ORDEM CRÍTICA
-       React e ReactDOM precisam carregar ANTES de htm/preact-htm/supabase,
-       e tudo precisa estar pronto antes do nosso <script> de app rodar.
-       Usamos unpkg (espelha exatamente os pacotes npm, builds UMD oficiais).
+       React → ReactDOM → Babel Standalone → Supabase.
+       Trocamos htm por Babel Standalone: htm gera nomes de atributo estilo
+       HTML puro (class, onclick) que o React 18 rejeita com o "Minified
+       React error #62" (espera className, onClick em camelCase — convenção
+       JSX). Babel Standalone compila JSX de verdade no navegador, sem
+       precisar de Node/Vite/Webpack, e elimina esse problema na raiz.
        ═══════════════════════════════════════════════════════════════════════ -->
 
-  <!-- 1) React (expõe window.React) -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-
-  <!-- 2) ReactDOM (expõe window.ReactDOM — note capitalização exata: ReactDOM, não ReactDom) -->
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-
-  <!-- 3) htm (expõe window.htm — versão standalone, sem precisar de htm/react) -->
-  <script src="https://unpkg.com/htm@3.1.1/dist/htm.js" crossorigin></script>
-
-  <!-- 4) Supabase JS (expõe window.supabase) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin></script>
 </head>
 
 <body>
   <div id="root"></div>
 
-  <!-- Fallback visual caso algum CDN falhe silenciosamente -->
   <noscript>
     <div style="color:#f87171;background:#0d1117;padding:2rem;font-family:sans-serif;">
       Esta aplicação requer JavaScript habilitado no navegador.
@@ -107,15 +98,13 @@
   <script>
     /* ════════════════════════════════════════════════════════════════════
        VERIFICAÇÃO DE INTEGRIDADE DOS GLOBAIS
-       Se algum CDN falhar (bloqueio de rede, adblock, etc.), mostramos um
-       erro legível na tela em vez de deixar a tela preta/branca silenciosa.
        ════════════════════════════════════════════════════════════════════ */
     (function checkGlobals() {
       const faltando = [];
-      if (typeof window.React === 'undefined')      faltando.push('React');
-      if (typeof window.ReactDOM === 'undefined')    faltando.push('ReactDOM');
-      if (typeof window.htm === 'undefined')         faltando.push('htm');
-      if (typeof window.supabase === 'undefined')    faltando.push('supabase-js');
+      if (typeof window.React === 'undefined')   faltando.push('React');
+      if (typeof window.ReactDOM === 'undefined') faltando.push('ReactDOM');
+      if (typeof window.Babel === 'undefined')    faltando.push('Babel');
+      if (typeof window.supabase === 'undefined') faltando.push('supabase-js');
 
       if (faltando.length > 0) {
         document.getElementById('root').innerHTML = `
@@ -134,77 +123,68 @@
     })();
   </script>
 
-  <script>
-    /* ════════════════════════════════════════════════════════════════════
-       APP — escrito como script clássico (não type="module"), usando
-       exclusivamente os globais window.React / window.ReactDOM / window.htm
-       e window.supabase.createClient. Sem imports, sem importmap.
-       ════════════════════════════════════════════════════════════════════ */
-
-    // Desestrutura React a partir do global
+  <!-- ════════════════════════════════════════════════════════════════════
+       APP em JSX real, compilado no navegador pelo Babel Standalone.
+       type="text/babel" sinaliza ao Babel para processar este bloco;
+       Babel intercepta e transforma antes da execução.
+       ════════════════════════════════════════════════════════════════════ -->
+  <script type="text/babel" data-presets="react">
     const { useState, useEffect } = React;
-
-    // htm precisa ser "vinculado" ao React.createElement manualmente
-    // (esta é a etapa que diferencia htm "puro" de htm/react/htm/preact)
-    const html = htm.bind(React.createElement);
 
     /* ─── CONFIGURAÇÃO SUPABASE (suas chaves, preservadas) ──────────────── */
     const SUPABASE_URL      = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjYyNjEsImV4cCI6MjA5NzI0MjI2MX0.ntq4ABMCXOhvjI-yU5XH7bclEGMVY0_72Admuid1Zn4';
     /* ────────────────────────────────────────────────────────────────────── */
 
-    // window.supabase.createClient — note que window.supabase é o NAMESPACE
-    // da biblioteca (não o cliente). O cliente é criado abaixo e guardado
-    // numa variável com outro nome para não colidir com o global.
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /* ── Utilitários ─────────────────────────────────────────────────────── */
     function traduzirErro(msg) {
       if (!msg) return 'Ocorreu um erro inesperado.';
       const m = msg.toLowerCase();
-      if (m.includes('invalid login credentials'))       return 'E-mail ou senha incorretos.';
-      if (m.includes('user already registered'))         return 'Este e-mail já está cadastrado.';
-      if (m.includes('password should be at least'))     return 'A senha precisa ter no mínimo 6 caracteres.';
-      if (m.includes('email not confirmed'))             return 'Confirme seu e-mail antes de entrar.';
-      if (m.includes('unable to validate'))               return 'Link de confirmação expirado ou inválido.';
-      if (m.includes('rate limit'))                       return 'Muitas tentativas. Aguarde alguns minutos.';
+      if (m.includes('invalid login credentials'))   return 'E-mail ou senha incorretos.';
+      if (m.includes('user already registered'))     return 'Este e-mail já está cadastrado.';
+      if (m.includes('password should be at least')) return 'A senha precisa ter no mínimo 6 caracteres.';
+      if (m.includes('email not confirmed'))          return 'Confirme seu e-mail antes de entrar.';
+      if (m.includes('unable to validate'))            return 'Link de confirmação expirado ou inválido.';
+      if (m.includes('rate limit'))                    return 'Muitas tentativas. Aguarde alguns minutos.';
       return msg;
     }
 
     /* ── Ícone Moeda ─────────────────────────────────────────────────────── */
     function CoinLogo({ size = 24 }) {
-      return html`
-        <svg width=${size} height=${size} viewBox="0 0 24 24" fill="none"
-             stroke="#34d399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+             stroke="#34d399" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="9" />
-          <line x1="12" y1="7"  x2="12" y2="17" />
-          <line x1="9"  y1="12" x2="15" y2="12" />
+          <line x1="12" y1="7" x2="12" y2="17" />
+          <line x1="9" y1="12" x2="15" y2="12" />
         </svg>
-      `;
+      );
     }
 
     /* ── Spinner ─────────────────────────────────────────────────────────── */
     function Spinner() {
-      return html`
-        <div class="spinner" style="
-          width:16px; height:16px;
-          border: 2.5px solid rgba(0,0,0,0.15);
-          border-top-color: #0d1117;
-          border-radius: 50%;
-        "></div>
-      `;
+      return (
+        <div className="spinner" style={{
+          width: 16, height: 16,
+          border: '2.5px solid rgba(0,0,0,0.15)',
+          borderTopColor: '#0d1117',
+          borderRadius: '50%'
+        }}></div>
+      );
     }
 
     /* ── Tela de Login / Cadastro ─────────────────────────────────────────── */
     function LoginScreen() {
-      const [modo,     setModo]     = useState('entrar');
-      const [nome,     setNome]     = useState('');
+      const [modo, setModo] = useState('entrar');
+      const [nome, setNome] = useState('');
       const [whatsapp, setWhatsapp] = useState('');
-      const [email,    setEmail]    = useState('');
-      const [senha,    setSenha]    = useState('');
-      const [erro,     setErro]     = useState('');
-      const [sucesso,  setSucesso]  = useState('');
-      const [loading,  setLoading]  = useState(false);
+      const [email, setEmail] = useState('');
+      const [senha, setSenha] = useState('');
+      const [erro, setErro] = useState('');
+      const [sucesso, setSucesso] = useState('');
+      const [loading, setLoading] = useState(false);
       const [showPass, setShowPass] = useState(false);
 
       const isCad = modo === 'cadastrar';
@@ -258,179 +238,175 @@
         isCad ? handleCadastrar() : handleEntrar();
       }
 
-      const tabBase  = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-200 ';
+      const tabBase = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-200 ';
       const tabAtivo = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
-      const tabOff   = tabBase + 'text-slate-500 hover:text-slate-300';
+      const tabOff = tabBase + 'text-slate-500 hover:text-slate-300';
 
-      return html`
-        <div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
-          <div class="w-full max-w-sm fade-up">
+      return (
+        <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm fade-up">
 
-            <div class="flex flex-col items-center mb-8 gap-3">
-              <div class="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800
-                          flex items-center justify-center shadow-xl">
-                <${CoinLogo} size=${38} />
+            <div className="flex flex-col items-center mb-8 gap-3">
+              <div className="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800 flex items-center justify-center shadow-xl">
+                <CoinLogo size={38} />
               </div>
-              <div class="text-center">
-                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">
+              <div className="text-center">
+                <h1 className="text-2xl font-extrabold text-[#34d399] tracking-tight">
                   Minhas Moedinhas
                 </h1>
-                <p class="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p>
+                <p className="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p>
               </div>
             </div>
 
-            <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
 
-              <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
-                <button class=${!isCad ? tabAtivo : tabOff}
-                        onClick=${() => { setModo('entrar'); limpar(); setNome(''); setWhatsapp(''); setSenha(''); setEmail(''); }}>
+              <div className="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
+                <button
+                  className={!isCad ? tabAtivo : tabOff}
+                  onClick={() => { setModo('entrar'); limpar(); setNome(''); setWhatsapp(''); setSenha(''); setEmail(''); }}
+                >
                   Entrar
                 </button>
-                <button class=${isCad ? tabAtivo : tabOff}
-                        onClick=${() => { setModo('cadastrar'); limpar(); setSenha(''); setEmail(''); }}>
+                <button
+                  className={isCad ? tabAtivo : tabOff}
+                  onClick={() => { setModo('cadastrar'); limpar(); setSenha(''); setEmail(''); }}
+                >
                   Criar Conta
                 </button>
               </div>
 
-              <div class="space-y-3">
+              <div className="space-y-3">
 
-                ${isCad && html`
-                  <div class="space-y-1.5 fade-up">
-                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                      Nome Completo
-                    </label>
-                    <input
-                      type="text"
-                      value=${nome}
-                      onChange=${e => { setNome(e.target.value); limpar(); }}
-                      onKeyDown=${onKey}
-                      placeholder="Seu nome completo"
-                      autocomplete="name"
-                      class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl
-                             border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                    />
-                  </div>
-                  <div class="space-y-1.5 fade-up">
-                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                      WhatsApp
-                    </label>
-                    <input
-                      type="tel"
-                      value=${whatsapp}
-                      onChange=${e => { setWhatsapp(e.target.value); limpar(); }}
-                      onKeyDown=${onKey}
-                      placeholder="(11) 99999-9999"
-                      autocomplete="tel"
-                      class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl
-                             border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                    />
-                  </div>
-                `}
+                {isCad && (
+                  <>
+                    <div className="space-y-1.5 fade-up">
+                      <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                        Nome Completo
+                      </label>
+                      <input
+                        type="text"
+                        value={nome}
+                        onChange={e => { setNome(e.target.value); limpar(); }}
+                        onKeyDown={onKey}
+                        placeholder="Seu nome completo"
+                        autoComplete="name"
+                        className="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5 fade-up">
+                      <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                        WhatsApp
+                      </label>
+                      <input
+                        type="tel"
+                        value={whatsapp}
+                        onChange={e => { setWhatsapp(e.target.value); limpar(); }}
+                        onKeyDown={onKey}
+                        placeholder="(11) 99999-9999"
+                        autoComplete="tel"
+                        className="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                      />
+                    </div>
+                  </>
+                )}
 
-                <div class="space-y-1.5">
-                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
                     E-mail
                   </label>
                   <input
                     type="email"
-                    value=${email}
-                    onChange=${e => { setEmail(e.target.value); limpar(); }}
-                    onKeyDown=${onKey}
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); limpar(); }}
+                    onKeyDown={onKey}
                     placeholder="voce@email.com"
-                    autocomplete="email"
-                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl
-                           border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                    autoComplete="email"
+                    className="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
                   />
                 </div>
 
-                <div class="space-y-1.5">
-                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
                     Senha
                   </label>
-                  <div class="relative">
+                  <div className="relative">
                     <input
-                      type=${showPass ? 'text' : 'password'}
-                      value=${senha}
-                      onChange=${e => { setSenha(e.target.value); limpar(); }}
-                      onKeyDown=${onKey}
+                      type={showPass ? 'text' : 'password'}
+                      value={senha}
+                      onChange={e => { setSenha(e.target.value); limpar(); }}
+                      onKeyDown={onKey}
                       placeholder="••••••••"
-                      autocomplete=${isCad ? 'new-password' : 'current-password'}
-                      class="auth-input w-full px-4 py-3 pr-11 bg-[#0d1117] rounded-xl
-                             border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                      autoComplete={isCad ? 'new-password' : 'current-password'}
+                      className="auth-input w-full px-4 py-3 pr-11 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
                     />
                     <button
                       type="button"
-                      onClick=${() => setShowPass(v => !v)}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500
-                             hover:text-slate-300 transition-colors">
-                      ${showPass
-                        ? html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                                 <line x1="1" y1="1" x2="23" y2="23"/>
-                               </svg>`
-                        : html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                                    stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                 <circle cx="12" cy="12" r="3"/>
-                               </svg>`
-                      }
+                      onClick={() => setShowPass(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      {showPass ? (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      ) : (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      )}
                     </button>
                   </div>
-                  ${isCad && html`
-                    <p class="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>
-                  `}
+                  {isCad && (
+                    <p className="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>
+                  )}
                 </div>
               </div>
 
-              ${erro && html`
-                <div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50
-                            rounded-xl px-3.5 py-3 fade-up">
-                  <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none"
-                       viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              {erro && (
+                <div className="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3 fade-up">
+                  <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                   </svg>
-                  <p class="text-xs text-red-300 leading-relaxed">${erro}</p>
+                  <p className="text-xs text-red-300 leading-relaxed">{erro}</p>
                 </div>
-              `}
+              )}
 
-              ${sucesso && html`
-                <div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50
-                            rounded-xl px-3.5 py-3 fade-up">
-                  <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none"
-                       viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+              {sucesso && (
+                <div className="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3 fade-up">
+                  <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
                   </svg>
-                  <p class="text-xs text-emerald-300 leading-relaxed">${sucesso}</p>
+                  <p className="text-xs text-emerald-300 leading-relaxed">{sucesso}</p>
                 </div>
-              `}
+              )}
 
               <button
-                onClick=${isCad ? handleCadastrar : handleEntrar}
-                disabled=${loading}
-                class="auth-btn w-full flex items-center justify-center gap-2
-                       bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950
-                       font-bold py-3.5 rounded-xl text-sm
-                       disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
-                ${loading
-                  ? html`<${Spinner} /><span>${isCad ? 'Criando conta...' : 'Entrando...'}</span>`
-                  : isCad ? 'Criar minha conta' : 'Entrar na minha conta'
-                }
+                onClick={isCad ? handleCadastrar : handleEntrar}
+                disabled={loading}
+                className="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-3.5 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {loading ? (
+                  <>
+                    <Spinner />
+                    <span>{isCad ? 'Criando conta...' : 'Entrando...'}</span>
+                  </>
+                ) : (
+                  isCad ? 'Criar minha conta' : 'Entrar na minha conta'
+                )}
               </button>
 
-              <div class="flex items-center gap-3">
-                <div class="h-px flex-1 bg-slate-800"></div>
-                <span class="text-[10px] text-slate-600 font-medium">ou continue com</span>
-                <div class="h-px flex-1 bg-slate-800"></div>
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-slate-800"></div>
+                <span className="text-[10px] text-slate-600 font-medium">ou continue com</span>
+                <div className="h-px flex-1 bg-slate-800"></div>
               </div>
 
               <button
-                onClick=${handleGoogle}
-                disabled=${loading}
-                class="google-btn w-full flex items-center justify-center gap-2.5
-                       bg-[#0d1117] border border-slate-700 text-slate-200
-                       font-semibold py-3 rounded-xl text-sm disabled:opacity-50">
+                onClick={handleGoogle}
+                disabled={loading}
+                className="google-btn w-full flex items-center justify-center gap-2.5 bg-[#0d1117] border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -442,90 +418,83 @@
 
             </div>
 
-            <p class="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
+            <p className="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
               Ao continuar você concorda com os termos de uso.<br/>
               Seus dados são protegidos e nunca compartilhados.
             </p>
           </div>
         </div>
-      `;
+      );
     }
 
     /* ── Dashboard ────────────────────────────────────────────────────────── */
     function Dashboard({ session, onLogout }) {
-      const meta         = (session && session.user && session.user.user_metadata) || {};
-      const nomeExib      = meta.display_name || meta.name || (session && session.user && session.user.email) || 'Usuário';
-      const primeiroNome  = nomeExib.split(' ')[0];
+      const meta = (session && session.user && session.user.user_metadata) || {};
+      const nomeExib = meta.display_name || meta.name || (session && session.user && session.user.email) || 'Usuário';
+      const primeiroNome = nomeExib.split(' ')[0];
 
-      return html`
-        <div class="min-h-screen bg-[#0d1117] text-slate-100 flex flex-col">
+      const cards = [
+        { label: 'Saldo Atual', valor: 'R$ 0,00', cor: '#34d399', icon: '💰' },
+        { label: 'Entradas', valor: 'R$ 0,00', cor: '#60a5fa', icon: '↑' },
+        { label: 'Saídas', valor: 'R$ 0,00', cor: '#f87171', icon: '↓' },
+      ];
 
-          <header class="bg-[#1a2233] border-b border-slate-800 px-6 py-4
-                         flex items-center justify-between shadow-md sticky top-0 z-10">
-            <div class="flex items-center gap-2.5">
-              <${CoinLogo} size=${26} />
-              <span class="font-bold text-lg text-[#34d399] tracking-tight leading-none">
+      return (
+        <div className="min-h-screen bg-[#0d1117] text-slate-100 flex flex-col">
+
+          <header className="bg-[#1a2233] border-b border-slate-800 px-6 py-4 flex items-center justify-between shadow-md sticky top-0 z-10">
+            <div className="flex items-center gap-2.5">
+              <CoinLogo size={26} />
+              <span className="font-bold text-lg text-[#34d399] tracking-tight leading-none">
                 Minhas Moedinhas
               </span>
             </div>
-            <div class="flex items-center gap-4">
-              <span class="text-xs text-slate-400 hidden sm:block">
-                Olá, <strong class="text-slate-200">${primeiroNome}</strong> 👋
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-slate-400 hidden sm:block">
+                Olá, <strong className="text-slate-200">{primeiroNome}</strong> 👋
               </span>
               <button
-                onClick=${onLogout}
-                class="text-xs bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400
-                       font-semibold px-3 py-1.5 rounded-lg border border-slate-700
-                       hover:border-red-900/50 transition-all">
+                onClick={onLogout}
+                className="text-xs bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400 font-semibold px-3 py-1.5 rounded-lg border border-slate-700 hover:border-red-900/50 transition-all"
+              >
                 Sair
               </button>
             </div>
           </header>
 
-          <main class="flex-1 p-6 max-w-4xl w-full mx-auto flex flex-col items-center
-                       justify-center text-center space-y-5 fade-up">
+          <main className="flex-1 p-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-center text-center space-y-5 fade-up">
 
-            <div class="w-20 h-20 rounded-full bg-[#34d399]/10 flex items-center justify-center
-                        border border-[#34d399]/20 shadow-inner">
-              <${CoinLogo} size=${42} />
+            <div className="w-20 h-20 rounded-full bg-[#34d399]/10 flex items-center justify-center border border-[#34d399]/20 shadow-inner">
+              <CoinLogo size={42} />
             </div>
 
-            <div class="max-w-md space-y-2">
-              <h2 class="text-xl font-bold text-slate-100">
-                Bem-vindo, ${primeiroNome}! 🎉
+            <div className="max-w-md space-y-2">
+              <h2 className="text-xl font-bold text-slate-100">
+                Bem-vindo, {primeiroNome}! 🎉
               </h2>
-              <p class="text-sm text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Sua conexão com o Supabase Auth está operacional.<br/>
                 O painel está pronto para receber os lançamentos financeiros.
               </p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mt-4">
-              ${[
-                { label: 'Saldo Atual', valor: 'R$ 0,00', cor: '#34d399', icon: '💰' },
-                { label: 'Entradas',    valor: 'R$ 0,00', cor: '#60a5fa', icon: '↑' },
-                { label: 'Saídas',      valor: 'R$ 0,00', cor: '#f87171', icon: '↓' },
-              ].map(c => html`
-                <div key=${c.label}
-                     class="bg-[#1a2233] border border-slate-800 rounded-2xl p-5 text-left
-                            hover:border-slate-700 transition-colors">
-                  <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                      ${c.label}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mt-4">
+              {cards.map(c => (
+                <div key={c.label} className="bg-[#1a2233] border border-slate-800 rounded-2xl p-5 text-left hover:border-slate-700 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                      {c.label}
                     </span>
-                    <span class="text-lg">${c.icon}</span>
+                    <span className="text-lg">{c.icon}</span>
                   </div>
-                  <p class="text-2xl font-extrabold" style="color: ${c.cor}">${c.valor}</p>
-                  <p class="text-[10px] text-slate-600 mt-1">Nenhum lançamento ainda</p>
+                  <p className="text-2xl font-extrabold" style={{ color: c.cor }}>{c.valor}</p>
+                  <p className="text-[10px] text-slate-600 mt-1">Nenhum lançamento ainda</p>
                 </div>
-              `)}
+              ))}
             </div>
 
-            <button
-              class="auth-btn mt-2 inline-flex items-center gap-2 bg-[#34d399] text-slate-950
-                     font-bold px-6 py-3 rounded-xl text-sm">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <button className="auth-btn mt-2 inline-flex items-center gap-2 bg-[#34d399] text-slate-950 font-bold px-6 py-3 rounded-xl text-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
               Novo Lançamento
@@ -533,12 +502,12 @@
 
           </main>
         </div>
-      `;
+      );
     }
 
     /* ── App Root ─────────────────────────────────────────────────────────── */
     function App() {
-      const [session,       setSession]       = useState(null);
+      const [session, setSession] = useState(null);
       const [inicializando, setInicializando] = useState(true);
 
       useEffect(() => {
@@ -559,29 +528,24 @@
       }
 
       if (inicializando) {
-        return html`
-          <div class="min-h-screen bg-[#0d1117] flex items-center justify-center">
-            <div class="spinner" style="
-              width:36px; height:36px;
-              border: 3px solid rgba(52,211,153,0.2);
-              border-top-color: #34d399;
-              border-radius: 50%;
-            "></div>
+        return (
+          <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+            <div className="spinner" style={{
+              width: 36, height: 36,
+              border: '3px solid rgba(52,211,153,0.2)',
+              borderTopColor: '#34d399',
+              borderRadius: '50%'
+            }}></div>
           </div>
-        `;
+        );
       }
 
-      return !session
-        ? html`<${LoginScreen} />`
-        : html`<${Dashboard} session=${session} onLogout=${handleLogout} />`;
+      return !session ? <LoginScreen /> : <Dashboard session={session} onLogout={handleLogout} />;
     }
 
-    /* ── Montagem na DOM — sintaxe React 18 ──────────────────────────────────
-       window.ReactDOM.createRoot (capitalização EXATA do pacote oficial:
-       "ReactDOM", D e O maiúsculos, m minúsculo). Isto difere de ReactDom
-       ou Reactdom, que NÃO existem no UMD build e causariam TypeError. ── */
+    /* ── Montagem na DOM — React 18 ──────────────────────────────────────── */
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(html`<${App} />`);
+    root.render(<App />);
   </script>
 </body>
 </html>
