@@ -1,337 +1,838 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minhas Moedinhas</title>
-    <link rel="icon" href="https://fav.farm/🪙" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #020617; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minhas Moedinhas - Educação Financeira</title>
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+
+    /* ── Gráfico ── */
+    .bar-animate { transition: height 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+    .bar-proj    { background: linear-gradient(to top, #818cf8cc, #a5b4fcee); }
+    .bar-hist    { background: #34d39980; }
+    .bar-hist:hover { background: #34d399; }
+
+    /* ── Acordeão ── */
+    .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
+    .accordion-body.open { max-height: 520px; }
+
+    /* ── Selic pulse ── */
+    .pulse-dot { animation: pulse-ring 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite; }
+    @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* ── Progress bar ── */
+    .progress-fill { transition: width 0.7s cubic-bezier(0.16,1,0.3,1); }
+
+    /* ── Card glow ── */
+    .card-glow:hover { box-shadow: 0 0 0 1px #34d39933, 0 8px 28px #34d39914; }
+
+    /* ── Inputs numéricos sem seta ── */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type=number] { -moz-appearance: textfield; }
+
+    /* ── Botões micro-interação ── */
+    .profile-btn { transition: all 0.18s ease; }
+    .profile-btn:hover { transform: translateY(-1px); }
+    .profile-btn:active { transform: scale(0.96); }
+
+    .sim-btn { transition: all 0.15s ease; }
+    .sim-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px #34d39940; }
+    .sim-btn:active { transform: scale(0.97); box-shadow: none; }
+
+    .tab-btn { transition: all 0.2s ease; }
+
+    .auth-btn { transition: all 0.18s ease; }
+    .auth-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px #34d39945; }
+    .auth-btn:active { transform: scale(0.97); }
+
+    .signout-btn { transition: all 0.18s ease; }
+    .signout-btn:hover { background: rgba(30,41,59,0.8); color: #94a3b8; }
+    .signout-btn:active { transform: scale(0.95); }
+
+    /* ── Tooltip das barras ── */
+    .bar-tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 6px;
+      z-index: 10;
+    }
+    .bar-wrap:hover .bar-tooltip { opacity: 1; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin 0.8s linear infinite; }
+
+    /* ── Fade in tela ── */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.3s ease forwards; }
+
+    /* ── Auth input focus ring ── */
+    .auth-input { transition: border-color 0.2s, box-shadow 0.2s; }
+    .auth-input:focus { outline: none; border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
+  </style>
 </head>
-<body class="text-slate-100">
-    <div id="root"></div>
+<body class="bg-[#0d1117] text-slate-100 antialiased">
+  <div id="root"></div>
 
-    <script>
-        const e = React.createElement;
-        const useState = React.useState;
-        const useEffect = React.useEffect;
+  <script>
+    const { useState, useEffect, useCallback } = React;
+    const html = htm.bind(React.createElement);
 
-        const USUARIO_CORRETO = "flavio";
-        const SENHA_CORRETA = "123";
-        const FOTO_PERFIL_URL = "https://github.com/flaviopavan.png";
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ☁️  SUPABASE — substitua pelas suas credenciais reais do projeto
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SUPABASE_URL      = 'SUA_URL_AQUI';
+    const SUPABASE_ANON_KEY = 'SUA_CHAVE_AQUI';
 
-        const INVESTIMENTOS_DATA = [
-            { id: 1, nome: "Tesouro Selic 2027", categoria: "Renda Fixa", valor: 5820.00, rentabilidade: "+10.75% a.a.", taxaAnual: 0.1075, risco: "Muito Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "O investimento mais seguro do país. Você empresta dinheiro para o Governo Federal. Ideal para segurança total e reserva de emergência.", ondeComo: "Qualquer banco ou corretora de valores via Tesouro Direto." },
-            { id: 2, nome: "CDB 110% (Grandes Bancos)", categoria: "Renda Fixa", valor: 2500.00, rentabilidade: "+11.50% a.a.", taxaAnual: 0.1150, risco: "Baixo", riscoCor: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20", desc: "Empréstimo para o banco. Possui a proteção do FGC (Fundo Garantidor de Crédito) para valores de até R$ 250 mil por CPF.", ondeComo: "Direto no aplicativo do seu banco digital ou corretora." },
-            { id: 3, nome: "Fundo Imobiliário (FII Grande Shopping)", categoria: "FIIs", valor: 3500.00, rentabilidade: "+0.85% ao mês", taxaAnual: 0.1020, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Você compra pedacinhos de grandes shoppings ou galpões e recebe uma parte dos aluguéis na sua conta todo mês, livre de Imposto de Renda!", ondeComo: "Comprado na Bolsa (Home Broker) através de códigos como MXRF11, HGLG11 ou XPML11." },
-            { id: 4, nome: "Fundo Multimercado", categoria: "Fundos", valor: 1200.50, rentabilidade: "+7.20% a.a.", taxaAnual: 0.0720, risco: "Médio", riscoCor: "bg-amber-500/10 text-amber-400 border border-amber-500/20", desc: "Gestores profissionais pegam seu dinheiro e distribuem em vários mercados buscando o melhor ganho. Pode oscilar um pouco.", ondeComo: "Plataformas de investimento como XP, BTG ou Inter." },
-            { id: 5, nome: "Ações Itaú / Vale / Petrobras", categoria: "Ações", valor: 1980.00, rentabilidade: "+14.30% a.a.", taxaAnual: 0.1430, risco: "Alto", riscoCor: "bg-rose-500/10 text-rose-400 border border-rose-500/20", desc: "Seja sócio das maiores empresas do Brasil. Se elas lucrarem, você ganha dividendos; se o mercado tremer, o valor delas oscila.", ondeComo: "Através do Home Broker da sua corretora de preferência." },
-            { id: 6, nome: "Bitcoin (BTC)", categoria: "Cripto", valor: 850.00, rentabilidade: "+42.80% a.a.", taxaAnual: 0.4280, risco: "Muito Alto", riscoCor: "bg-purple-500/10 text-purple-400 border border-purple-500/20", desc: "Moeda digital do futuro. Potencial de lucro explosivo, mas com volatilidade extrema. Coloque apenas uma quantia pequena.", ondeComo: "Corretoras especializadas (Exchanges) ou ETFs de Cripto na Bolsa." }
-        ];
+    // A CDN do supabase-js@2 expõe o cliente em window.supabase
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        function App() {
-            const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [usernameInput, setUsernameInput] = useState("");
-            const [passwordInput, setPasswordInput] = useState("");
-            const [loginError, setLoginError] = useState("");
-            const [usuarioLogado, setUsuarioLogado] = useState("");
+    // Flag: quando as credenciais forem as padrão, opera em modo localStorage
+    const MODO_LOCAL = SUPABASE_URL === 'SUA_URL_AQUI';
 
-            const [mostrarSaldo, setMostrarSaldo] = useState(true);
-            const [categoriaFiltro, setCategoriaFiltro] = useState("Todos");
-            const [itemSelecionado, setItemSelecionado] = useState(INVESTIMENTOS_DATA[0]);
-            const [valorSimulado, setValorSimulado] = useState(1000);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🗄️  CAMADA DE DADOS — Repository Pattern
+    //     • MODO_LOCAL=true  → localStorage (dev sem Supabase)
+    //     • MODO_LOCAL=false → Supabase (produção)
+    //     Tabela esperada: portfolios (user_id UUID PK, aporte NUMERIC, perfil TEXT)
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function dbLoad(userId) {
+      if (MODO_LOCAL) {
+        const aporte = localStorage.getItem('@mm:aporte');
+        const perfil = localStorage.getItem('@mm:perfil');
+        return { aporte: aporte ? parseFloat(aporte) : null, perfil: perfil || 'moderado' };
+      }
+      const { data, error } = await sbClient
+        .from('portfolios')
+        .select('aporte, perfil')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error) { console.error('[DB] load:', error.message); return { aporte: null, perfil: 'moderado' }; }
+      return { aporte: data?.aporte ?? null, perfil: data?.perfil ?? 'moderado' };
+    }
 
-            useEffect(() => {
-                const sessionUser = localStorage.getItem("moedinhas_user");
-                if (sessionUser) {
-                    setIsLoggedIn(true);
-                    setUsuarioLogado(sessionUser);
-                }
-            }, []);
+    async function dbSave(userId, aporte, perfil) {
+      if (MODO_LOCAL) {
+        if (aporte !== null) localStorage.setItem('@mm:aporte', String(aporte));
+        localStorage.setItem('@mm:perfil', perfil);
+        return;
+      }
+      const { error } = await sbClient
+        .from('portfolios')
+        .upsert({ user_id: userId, aporte, perfil }, { onConflict: 'user_id' });
+      if (error) console.error('[DB] upsert:', error.message);
+    }
 
-            const handleLogin = (eSubmit) => {
-                eSubmit.preventDefault();
-                if (usernameInput.trim().toLowerCase() === USUARIO_CORRETO && passwordInput === SENHA_CORRETA) {
-                    localStorage.setItem("moedinhas_user", usernameInput.trim());
-                    setUsuarioLogado(usernameInput.trim());
-                    setIsLoggedIn(true);
-                    setLoginError("");
-                } else {
-                    setLoginError("Usuário ou senha inválidos.");
-                }
-            };
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 📊  DADOS ESTÁTICOS
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SELIC_FALLBACK = 10.5;
 
-            const handleLogout = () => {
-                localStorage.removeItem("moedinhas_user");
-                setIsLoggedIn(false);
-                setUsernameInput("");
-                setPasswordInput("");
-            };
+    const HISTORICO = [
+      { mes: 'Jan', valor: 4000  },
+      { mes: 'Fev', valor: 5500  },
+      { mes: 'Mar', valor: 8200  },
+      { mes: 'Abr', valor: 12000 },
+      { mes: 'Mai', valor: 15500 },
+      { mes: 'Jun', valor: 20550 },
+    ];
 
-            const totalSaldo = INVESTIMENTOS_DATA.reduce((acc, item) => acc + item.valor, 0);
-            const categorias = ["Todos", "Renda Fixa", "FIIs", "Fundos", "Ações", "Cripto"];
-            const listaFiltrada = categoriaFiltro === "Todos" 
-                ? INVESTIMENTOS_DATA 
-                : INVESTIMENTOS_DATA.filter(i => i.categoria === categoriaFiltro);
+    const PERFIS = {
+      conservador: {
+        label: 'Conservador', emoji: '🛡️',
+        alocacao: [
+          { nome: 'Renda Fixa',         pct: 0.70, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)',  pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',              pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+        ],
+      },
+      moderado: {
+        label: 'Moderado', emoji: '⚖️',
+        alocacao: [
+          { nome: 'Renda Fixa',         pct: 0.50, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)',  pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',              pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+        ],
+      },
+      arrojado: {
+        label: 'Arrojado', emoji: '🚀',
+        alocacao: [
+          { nome: 'Renda Fixa',         pct: 0.20, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)',  pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',              pct: 0.50, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+        ],
+      },
+    };
 
-            const rendimentoAnual = valorSimulado * itemSelecionado.taxaAnual;
-            const rendimentoMensalEstimado = rendimentoAnual / 12;
-            const totalFuturo = valorSimulado + rendimentoAnual;
+    const OPORTUNIDADES = [
+      {
+        id: 'tesouro', emoji: '🏛️', titulo: 'Tesouro Selic', subtitulo: 'Renda Fixa · Risco Baixo',
+        tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40',
+        descricao: 'O ativo mais seguro do país: rentabilidade diária atrelada à Taxa Selic. Liquidez em D+1, ideal para reserva de emergência e primeiros aportes.',
+        cta: 'Investir no Tesouro', href: 'https://www.tesourodireto.com.br/',
+        destaque: 'A porta de entrada mais segura para o mundo dos investimentos.',
+      },
+      {
+        id: 'fii', emoji: '🏢', titulo: 'Fundos Imobiliários (FIIs)', subtitulo: 'Renda Variável · Risco Médio',
+        tagColor: 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/40',
+        descricao: 'Seja sócio de shoppings, galpões e escritórios com a partir de R$100. FIIs pagam dividendos mensais isentos de IR para pessoa física.',
+        cta: 'Ver FIIs disponíveis', href: 'https://statusinvest.com.br/fundos-imobiliarios',
+        destaque: 'Dividendos mensais + isenção de IR: o favorito dos investidores.',
+      },
+      {
+        id: 'acoes', emoji: '📈', titulo: 'Ações — B3', subtitulo: 'Renda Variável · Risco Alto',
+        tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40',
+        descricao: 'Compre uma fatia de empresas reais como Petrobras, Vale ou Nubank. Oferecem alto potencial de crescimento no longo prazo.',
+        cta: 'Abrir conta na corretora', href: 'https://www.xpi.com.br/',
+        destaque: 'Para o horizonte longo: historicamente a maior rentabilidade real.',
+      },
+    ];
 
-            const getIniciais = (nome) => {
-                if (!nome) return "U";
-                return nome.substring(0, 2).toUpperCase();
-            };
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🔧  UTILIDADES
+    // ═══════════════════════════════════════════════════════════════════════════
+    function fmtBRL(v) {
+      return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 
-            // TELA DE LOGIN
-            if (!isLoggedIn) {
-                return e("div", { className: "min-h-screen flex items-center justify-center bg-slate-950 px-4" },
-                    e("div", { className: "max-w-md w-full bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6" },
-                        e("div", { className: "text-center space-y-2" },
-                            e("div", { className: "inline-block bg-emerald-500 text-white p-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 mb-2 text-2xl" }, "🪙"),
-                            e("h1", { className: "text-2xl font-black tracking-tight text-white" }, 
-                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
-                            ),
-                            e("p", { className: "text-sm text-slate-400" }, "Faça login para acessar o seu simulador premium")
-                        ),
+    function gerarProjecao(aporte, perfilObj, selicAnual) {
+      const rfPct       = perfilObj.alocacao[0].pct;
+      const fiiPct      = perfilObj.alocacao[1].pct;
+      const acoesPct    = perfilObj.alocacao[2].pct;
+      const taxaMensal  = Math.pow(1 + selicAnual / 100, 1 / 12) - 1;
+      const fiiMensal   = 0.006;
+      const acoesMensal = 0.010;
+      const meses       = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
+      let rf = aporte * rfPct, fii = aporte * fiiPct, acoes = aporte * acoesPct;
+      return meses.map(function(mes, i) {
+        if (i > 0) { rf *= 1 + taxaMensal; fii *= 1 + fiiMensal; acoes *= 1 + acoesMensal; }
+        return { mes, valor: rf + fii + acoes };
+      });
+    }
 
-                        e("form", { onSubmit: handleLogin, className: "space-y-4" },
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Usuário"),
-                                e("input", {
-                                    type: "text",
-                                    required: true,
-                                    placeholder: "Ex: flavio",
-                                    value: usernameInput,
-                                    onChange: (evt) => setUsernameInput(evt.target.value),
-                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
-                                })
-                            ),
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-slate-400 font-bold uppercase tracking-wider" }, "Senha"),
-                                e("input", {
-                                    type: "password",
-                                    required: true,
-                                    placeholder: "••••••",
-                                    value: passwordInput,
-                                    onChange: (evt) => setPasswordInput(evt.target.value),
-                                    className: "block w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-600 transition"
-                                })
-                            ),
+    function traduzirErroAuth(msg) {
+      if (!msg) return 'Ocorreu um erro. Tente novamente.';
+      if (msg.includes('Invalid login credentials'))  return 'E-mail ou senha incorretos.';
+      if (msg.includes('Email not confirmed'))         return 'Confirme seu e-mail antes de entrar.';
+      if (msg.includes('User already registered'))     return 'Este e-mail já possui cadastro.';
+      if (msg.includes('Password should be'))          return 'A senha deve ter pelo menos 6 caracteres.';
+      if (msg.includes('rate limit'))                  return 'Muitas tentativas. Aguarde alguns minutos.';
+      return msg;
+    }
 
-                            loginError && e("p", { className: "text-xs font-semibold text-rose-400 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20 text-center" }, loginError),
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🧩  COMPONENTES ATÔMICOS
+    // ═══════════════════════════════════════════════════════════════════════════
 
-                            e("button", {
-                                type: "submit",
-                                className: "w-full py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/10 transition mt-2"
-                            }, "Entrar na Carteira")
-                        ),
-                        e("div", { className: "text-center" },
-                            e("p", { className: "text-[11px] text-slate-500" }, "Dica técnica: use o usuário 'flavio' e senha '123'")
-                        )
-                    )
-                );
+    // ── Spinner SVG ───────────────────────────────────────────────────────────
+    function Spinner({ size }) {
+      const s = size || 'w-5 h-5';
+      return html`
+        <svg class=${'spin ' + s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="#1e293b" stroke-width="3"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
+        </svg>`;
+    }
+
+    // ── Logo SVG (substitui emoji 🪙) ─────────────────────────────────────────
+    function CoinLogo({ size }) {
+      const s = size || 28;
+      return html`
+        <svg width=${s} height=${s} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="14" cy="14" r="14" fill="#34d399" fill-opacity="0.12"/>
+          <circle cx="14" cy="14" r="10" fill="#34d399" fill-opacity="0.22"/>
+          <circle cx="14" cy="14" r="7"  fill="#34d399" fill-opacity="0.18"/>
+          <text x="14" y="18.5" text-anchor="middle" font-size="11" font-family="Inter,system-ui,sans-serif" font-weight="800" fill="#34d399">$</text>
+        </svg>`;
+    }
+
+    // ── Selic Badge ───────────────────────────────────────────────────────────
+    function SelicBadge({ selic, isLive, loading }) {
+      if (loading) {
+        return html`
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-600 pulse-dot inline-block"></span>
+            Buscando Selic…
+          </div>`;
+      }
+      const dotCls  = isLive ? 'bg-emerald-400' : 'bg-amber-400';
+      const txtCls  = isLive ? 'text-emerald-400' : 'text-amber-400';
+      const label   = isLive ? 'Selic ao vivo' : 'Média de mercado';
+      return html`
+        <div class="flex items-center gap-1.5 text-[10px] bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">
+          <span class=${'w-1.5 h-1.5 rounded-full pulse-dot inline-block ' + dotCls}></span>
+          <span class=${'font-semibold ' + txtCls}>${selic.toFixed(2)}% a.a.</span>
+          <span class="text-slate-500">${label}</span>
+        </div>`;
+    }
+
+    // ── Seletor de Perfil ─────────────────────────────────────────────────────
+    function PerfilSelector({ perfil, onChange }) {
+      return html`
+        <div class="flex gap-1.5 bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800">
+          ${['conservador','moderado','arrojado'].map(function(key) {
+            const p      = PERFIS[key];
+            const ativo  = perfil === key;
+            const base   = 'profile-btn flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-[10px] font-semibold cursor-pointer border ';
+            const estado = ativo
+              ? 'bg-[#1a2233] border-[#34d399]/50 text-[#34d399] shadow-sm'
+              : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300';
+            return html`
+              <button key=${key} class=${base + estado} onClick=${function() { onChange(key); }}>
+                <span class="text-base leading-none mb-0.5">${p.emoji}</span>
+                ${p.label}
+              </button>`;
+          })}
+        </div>`;
+    }
+
+    // ── Gráfico Bifuncional ───────────────────────────────────────────────────
+    function GraficoCard({ resultado, perfil, selic }) {
+      const [modo, setModo] = useState('historico');
+
+      const temAporte  = resultado !== null && resultado > 0;
+      const projecao   = temAporte ? gerarProjecao(resultado, PERFIS[perfil], selic) : [];
+      const dados      = modo === 'historico' ? HISTORICO : projecao;
+      const maxVal     = dados.length > 0 ? Math.max(...dados.map(function(d) { return d.valor; })) : 1;
+      const modoHist   = modo === 'historico';
+
+      const tabBase  = 'tab-btn px-3 py-1 rounded-lg text-[10px] font-semibold border ';
+      const tabHCls  = tabBase + (modoHist
+        ? 'bg-[#34d399]/15 border-[#34d399]/40 text-[#34d399]'
+        : 'bg-transparent border-transparent text-slate-500 hover:text-slate-400');
+      const tabPCls  = tabBase + (!modoHist
+        ? 'bg-indigo-400/15 border-indigo-400/40 text-indigo-300'
+        : 'bg-transparent border-transparent text-slate-500 hover:text-slate-400');
+
+      return html`
+        <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">
+              ${modoHist ? 'Evolução do Patrimônio' : 'Projeção — 12 meses'}
+            </h2>
+            <div class="flex gap-1 bg-[#0d1117]/50 p-0.5 rounded-lg border border-slate-800">
+              <button class=${tabHCls} onClick=${function() { setModo('historico'); }}>Histórico</button>
+              <button class=${tabPCls} onClick=${function() { setModo('projecao'); }}>12 meses</button>
+            </div>
+          </div>
+
+          ${!modoHist && !temAporte
+            ? html`
+                <div class="h-28 flex flex-col items-center justify-center gap-2 border border-dashed border-slate-700/60 rounded-xl bg-[#0d1117]/30">
+                  <span class="text-xl">💡</span>
+                  <p class="text-[11px] text-slate-500 text-center leading-relaxed">
+                    Digite um valor no simulador<br/>abaixo para ver a projeção.
+                  </p>
+                </div>`
+            : html`
+                <div class="flex items-end justify-between h-28 gap-1 px-0.5">
+                  ${dados.map(function(item) {
+                    const pct      = (item.valor / maxVal) * 100;
+                    const barCls   = modoHist
+                      ? 'bar-animate bar-hist w-full rounded-t-sm cursor-default'
+                      : 'bar-animate bar-proj w-full rounded-t-sm cursor-default';
+                    const valFmt   = item.valor >= 1000
+                      ? 'R$' + (item.valor / 1000).toFixed(1) + 'k'
+                      : 'R$' + item.valor.toFixed(0);
+                    const hSty = { height: pct + '%', minHeight: '6px' };
+                    return html`
+                      <div key=${item.mes} class="bar-wrap flex flex-col items-center w-full relative">
+                        <span class="bar-tooltip">${valFmt}</span>
+                        <div class=${barCls} style=${hSty}></div>
+                        <span class="text-[9px] mt-1.5 text-slate-600 font-medium">${item.mes}</span>
+                      </div>`;
+                  })}
+                </div>`
+          }
+
+          <div class="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+            ${modoHist
+              ? html`
+                  <span class="text-[10px] text-slate-500">Total acumulado</span>
+                  <span class="text-sm font-bold text-[#34d399]">R$ ${HISTORICO[HISTORICO.length-1].valor.toLocaleString('pt-BR')}</span>`
+              : temAporte
+                ? html`
+                    <span class="text-[10px] text-slate-500">Projeção em 12 meses</span>
+                    <span class="text-sm font-bold text-indigo-300">R$ ${fmtBRL(projecao[projecao.length-1].valor)}</span>`
+                : html`<span></span>`
             }
+          </div>
+        </section>`;
+    }
 
-            // Renderização do Bloco de Resultados do Simulador (Corrigido fora do return principal)
-            const renderResultadosSimulador = () => {
-                if (itemSelecionado.categoria === "FIIs") {
-                    return e("div", { className: "pt-3 border-t border-emerald-800/60 space-y-2" },
-                        e("div", { className: "bg-emerald-900/30 p-2.5 rounded-xl border border-emerald-800" },
-                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "💰 Pinga na conta todo mês (Aluguel)"),
-                            e("span", { className: "text-lg font-black text-yellow-300" }, `R$ ${rendimentoMensalEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                        ),
-                        e("div", { className: "grid grid-cols-2 gap-2 text-xs" },
-                            e("div", null,
-                                e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Total no Ano"),
-                                e("span", { className: "font-bold text-white" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                            ),
-                            e("div", null,
-                                e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Acúmulo Total"),
-                                e("span", { className: "font-bold text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                            )
-                        )
-                    );
-                } else {
-                    return e("div", { className: "pt-3 border-t border-emerald-800/60 grid grid-cols-2 gap-2" },
-                        e("div", null,
-                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Rendimento (1 Ano)"),
-                            e("span", { className: "text-base font-black text-emerald-300" }, `+ R$ ${rendimentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                        ),
-                        e("div", null,
-                            e("span", { className: "text-[10px] uppercase font-bold text-emerald-400 block" }, "Valor Total Final"),
-                            e("span", { className: "text-base font-black text-white" }, `R$ ${totalFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                        )
-                    );
-                }
-            };
+    // ── Resultado da Alocação ─────────────────────────────────────────────────
+    function ResultadoAlocacao({ resultado, perfil, selic, selicIsLive, selicLoading }) {
+      const alocacao   = PERFIS[perfil].alocacao;
+      const rfItem     = alocacao[0];
+      const rendMensal = (resultado * rfItem.pct * selic / 100) / 12;
 
-            // DASHBOARD PRINCIPAL
-            return e("div", { className: "min-h-screen flex flex-col bg-slate-950 text-slate-100" },
-                e("header", { className: "bg-slate-900 border-b border-slate-800 sticky top-0 z-10" },
-                    e("div", { className: "max-w-6xl mx-auto px-4 h-16 flex items-center justify-between" },
-                        e("div", { className: "flex items-center gap-2" },
-                            e("div", { className: "bg-emerald-500 text-white p-2 rounded-xl font-bold shadow-md shadow-emerald-500/20" }, "🪙"),
-                            e("span", { className: "font-extrabold text-xl text-white" }, 
-                                "Minhas", e("span", { className: "text-emerald-400" }, "Moedinhas")
-                            )
-                        ),
-                        
-                        e("div", { className: "flex items-center gap-3" },
-                            e("div", { className: "flex items-center gap-2 bg-slate-950 pl-3 pr-1 py-1 rounded-full border border-slate-800" },
-                                e("span", { className: "text-xs font-bold text-slate-300 hidden sm:inline capitalize" }, usuarioLogado),
-                                usuarioLogado.toLowerCase() === USUARIO_CORRETO ?
-                                e("img", { 
-                                    src: FOTO_PERFIL_URL, 
-                                    alt: "Avatar",
-                                    className: "w-8 h-8 rounded-full border border-emerald-500 shadow-sm"
-                                }) :
-                                e("div", { className: "w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs" }, 
-                                    getIniciais(usuarioLogado)
-                                )
-                            ),
-                            e("button", {
-                                onClick: handleLogout,
-                                className: "text-xs font-bold text-slate-400 hover:text-rose-400 p-2 rounded-lg transition"
-                            }, "Sair")
-                        )
-                    )
-                ),
+      return html`
+        <div class="space-y-2.5">
+          <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+            Divisão da carteira · Perfil ${PERFIS[perfil].emoji} ${PERFIS[perfil].label}
+          </p>
+          ${alocacao.map(function(a) {
+            const bruto    = resultado * a.pct;
+            const pctLabel = Math.round(a.pct * 100);
+            const isRF     = a === rfItem;
+            const wSty     = { width: (a.pct * 100) + '%' };
+            return html`
+              <div key=${a.nome} class="bg-[#0d1117]/70 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div class=${'w-1.5 h-6 rounded-full flex-shrink-0 opacity-80 ' + a.bg}></div>
+                    <div class="min-w-0">
+                      <p class="text-xs text-slate-300 font-medium">${a.nome} (${pctLabel}%)</p>
+                      ${isRF && !selicLoading && html`
+                        <p class="text-[9px] text-slate-500 mt-0.5">
+                          ${'≈ R$ ' + rendMensal.toFixed(2) + '/mês em juros'}
+                          ${!selicIsLive ? ' · média' : ''}
+                        </p>`}
+                    </div>
+                  </div>
+                  <span class=${'font-bold text-sm flex-shrink-0 ' + a.cor}>R$ ${fmtBRL(bruto)}</span>
+                </div>
+                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div class=${'h-full rounded-full progress-fill ' + a.bg} style=${wSty}></div>
+                </div>
+              </div>`;
+          })}
+          <p class="text-[9px] text-slate-600 text-center pt-1">
+            Projeção RF com Selic ${selic.toFixed(1)}% a.a.
+            ${selicIsLive ? ' (ao vivo)' : ' (média de mercado)'}
+            · Não é recomendação de investimento.
+          </p>
+        </div>`;
+    }
 
-                e("main", { className: "flex-1 max-w-6xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6" },
-                    e("div", { className: "md:col-span-2 space-y-6" },
-                        e("div", { className: "bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800" },
-                            e("div", { className: "flex justify-between items-center mb-2" },
-                                e("span", { className: "text-sm text-slate-400 font-medium" }, "Patrimônio Total Simulado"),
-                                e("button", { 
-                                    onClick: () => setMostrarSaldo(!mostrarSaldo),
-                                    className: "text-slate-300 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg transition border border-slate-700"
-                                }, mostrarSaldo ? "Ocultar Saldo" : "Mostrar Saldo")
-                            ),
-                            e("div", { className: "text-3xl font-black tracking-tight mb-2 text-white" }, 
-                                mostrarSaldo ? `R$ ${totalSaldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : "R$ •••••••"
-                            ),
-                            e("p", { className: "text-xs text-emerald-400 font-medium flex items-center gap-1" }, "📈 Carteira diversificada com os melhores ativos do mercado.")
-                        ),
+    // ── Oportunidade Card (Acordeão) ──────────────────────────────────────────
+    function OportunidadeCard({ op, isOpen, onToggle }) {
+      const bdrCls  = isOpen ? 'border-[#34d399]/40' : 'border-slate-800';
+      const cardCls = 'bg-[#1a2233] rounded-2xl border transition-all duration-300 card-glow overflow-hidden ' + bdrCls;
+      const bodyCls = isOpen ? 'accordion-body open' : 'accordion-body';
+      const svgCls  = 'w-4 h-4 text-slate-500 transition-transform duration-300 flex-shrink-0 ' + (isOpen ? 'rotate-180' : '');
 
-                        e("div", { className: "space-y-2" },
-                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Filtrar por Tipo"),
-                            e("div", { className: "flex flex-wrap gap-2" },
-                                categorias.map(cat => 
-                                    e("button", {
-                                        key: cat,
-                                        onClick: () => setCategoriaFiltro(cat),
-                                        className: `px-4 py-2 rounded-xl text-xs font-bold transition border ${
-                                            categoriaFiltro === cat 
-                                                ? "bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/10" 
-                                                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
-                                        }`
-                                    }, cat)
-                                )
-                            )
-                        ),
+      return html`
+        <div class=${cardCls}>
+          <button class="w-full flex items-center justify-between p-4 text-left" onClick=${onToggle} aria-expanded=${isOpen}>
+            <div class="flex items-center gap-3">
+              <span class="text-2xl leading-none">${op.emoji}</span>
+              <div>
+                <p class="text-sm font-bold text-slate-100">${op.titulo}</p>
+                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block ' + op.tagColor}>${op.subtitulo}</span>
+              </div>
+            </div>
+            <svg class=${svgCls} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class=${bodyCls}>
+            <div class="px-4 pb-4 space-y-3">
+              <div class="h-px bg-slate-700/50"></div>
+              <p class="text-xs text-slate-300 leading-relaxed">${op.descricao}</p>
+              <div class="bg-[#0d1117]/60 rounded-xl p-3 border border-slate-700/40">
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1">Por que considerar?</p>
+                <p class="text-xs text-[#34d399] font-medium">${op.destaque}</p>
+              </div>
+              <a
+                href=${op.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick=${function(e) { e.stopPropagation(); }}
+                class="flex items-center justify-center gap-2 w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-3 rounded-xl transition-colors duration-200"
+              >
+                ${op.cta}
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </a>
+              <p class="text-[9px] text-slate-600 text-center">Link de parceiro. Analise sempre antes de investir.</p>
+            </div>
+          </div>
+        </div>`;
+    }
 
-                        e("div", { className: "space-y-3" },
-                            e("h2", { className: "text-sm font-bold text-slate-400 uppercase tracking-wider" }, "Onde o dinheiro está alocado"),
-                            e("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" },
-                                listaFiltrada.map(item => 
-                                    e("div", {
-                                        key: item.id,
-                                        onClick: () => setItemSelecionado(item),
-                                        className: `bg-slate-900 p-5 rounded-2xl border-2 cursor-pointer transition flex flex-col justify-between min-h-[150px] h-full ${
-                                            itemSelecionado.id === item.id 
-                                                ? "border-emerald-500 bg-emerald-950/10 shadow-lg shadow-emerald-500/5" 
-                                                : "border-slate-850 bg-slate-900 hover:border-slate-700"
-                                        }`
-                                    }, 
-                                        e("div", { className: "space-y-1" },
-                                            e("div", { className: "flex justify-between items-start gap-2" },
-                                                e("h3", { className: "font-bold text-white text-sm sm:text-base leading-tight flex-1" }, item.nome),
-                                                e("span", { className: `text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${item.riscoCor}` }, item.risco)
-                                            ),
-                                            e("span", { className: "text-xs text-slate-400 font-medium block" }, item.categoria)
-                                        ),
-                                        e("div", { className: "flex justify-between items-end mt-4 pt-2 border-t border-slate-800/60" },
-                                            e("div", null,
-                                                e("span", { className: "text-[10px] text-slate-400 block uppercase font-bold" }, "Valor"),
-                                                e("span", { className: "font-extrabold text-white text-base" }, `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
-                                            ),
-                                            e("span", { className: "text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg shrink-0 border border-emerald-500/20" }, item.rentabilidade)
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    ),
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🔐  TELA DE LOGIN
+    // ═══════════════════════════════════════════════════════════════════════════
+    function LoginScreen() {
+      const [modo,    setModo]    = useState('entrar'); // 'entrar' | 'cadastrar'
+      const [email,   setEmail]   = useState('');
+      const [senha,   setSenha]   = useState('');
+      const [erro,    setErro]    = useState('');
+      const [sucesso, setSucesso] = useState('');
+      const [loading, setLoading] = useState(false);
 
-                    e("div", { className: "space-y-6" },
-                        e("div", { className: "bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-4" },
-                            e("div", { className: "flex items-center gap-2" },
-                                e("span", { className: "text-xl" }, "💡"),
-                                e("h2", { className: "font-extrabold text-white text-lg" }, "Guia Prático")
-                            ),
-                            e("div", { className: "bg-slate-950 rounded-2xl p-4 border border-slate-800" },
-                                e("span", { className: "text-[10px] uppercase font-bold text-slate-500 block mb-1" }, "Selecionado"),
-                                e("h3", { className: "text-base font-black text-white" }, itemSelecionado.nome),
-                                e("div", { className: "mt-2 flex gap-2" },
-                                    e("span", { className: "text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-md border border-slate-700" }, itemSelecionado.categoria),
-                                    e("span", { className: `text-xs font-bold px-2.5 py-0.5 rounded-md ${itemSelecionado.riscoCor}` }, `Risco ${itemSelecionado.risco}`)
-                                )
-                            ),
-                            e("div", { className: "space-y-3" },
-                                e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "O que significa na prática?"),
-                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.desc)
-                                ),
-                                e("div", null,
-                                    e("h4", { className: "text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5" }, "Como investir?"),
-                                    e("p", { className: "text-sm text-slate-300 leading-relaxed font-medium" }, itemSelecionado.ondeComo)
-                                )
-                            )
-                        ),
+      function limpar() { setErro(''); setSucesso(''); }
 
-                        e("div", { className: "bg-emerald-950 text-white rounded-3xl p-6 shadow-2xl space-y-4 border border-emerald-800/50 shadow-emerald-950/20" },
-                            e("div", { className: "flex items-center gap-2" },
-                                e("span", { className: "text-xl" }, "🧮"),
-                                e("h2", { className: "font-extrabold text-lg text-emerald-50" }, "Simulador de Ganhos")
-                            ),
-                            e("div", { className: "space-y-1.5" },
-                                e("label", { className: "text-xs text-emerald-400 font-bold uppercase tracking-wider" }, "Quanto quer simular?"),
-                                e("div", { className: "relative rounded-xl shadow-sm" },
-                                    e("div", { className: "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none" },
-                                        e("span", { className: "text-emerald-500 font-bold text-sm" }, "R$")
-                                    ),
-                                    e("input", {
-                                        type: "number",
-                                        value: valorSimulado,
-                                        onChange: (evt) => setValorSimulado(Number(evt.target.value)),
-                                        className: "block w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-emerald-800 text-white font-extrabold text-base rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                                    })
-                                )
-                            ),
-                            
-                            renderResultadosSimulador(),
-                            
-                            e("p", { className: "text-[11px] text-emerald-400/70 italic leading-snug" }, 
-                                `Estimativa calculada sobre a taxa de ${itemSelecionado.rentabilidade} recomendada.`
-                            )
-                        )
-                    )
-                ),
-
-                e("footer", { className: "bg-slate-900 text-center py-4 text-xs text-slate-500 font-medium border-t border-slate-800 mt-8" },
-                    "Minhas Moedinhas © 2026"
-                )
-            );
+      async function handleEntrar() {
+        if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
+        setLoading(true); limpar();
+        if (MODO_LOCAL) {
+          // Em modo local, simula login criando um user fictício via onAuthStateChange
+          // Isso não vai funcionar sem Supabase real — avisa o usuário
+          setErro('Configure SUPABASE_URL e SUPABASE_ANON_KEY para usar autenticação.');
+          setLoading(false); return;
         }
+        const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+        if (error) setErro(traduzirErroAuth(error.message));
+        setLoading(false);
+      }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(e(App));
-    </script>
+      async function handleCadastrar() {
+        if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
+        if (MODO_LOCAL) { setErro('Configure as credenciais do Supabase para criar conta.'); return; }
+        setLoading(true); limpar();
+        const { error } = await sbClient.auth.signUp({ email, password: senha });
+        if (error) setErro(traduzirErroAuth(error.message));
+        else setSucesso('Conta criada! Verifique seu e-mail para confirmar o cadastro.');
+        setLoading(false);
+      }
+
+      function onKey(e) { if (e.key === 'Enter') { modo === 'entrar' ? handleEntrar() : handleCadastrar(); } }
+
+      const isCad     = modo === 'cadastrar';
+      const tabBase   = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
+      const tabAtivo  = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
+      const tabInativ = tabBase + 'text-slate-500 hover:text-slate-300';
+
+      return html`
+        <div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+          <div class="w-full max-w-sm fade-up">
+
+            <!-- Marca -->
+            <div class="flex flex-col items-center mb-8 gap-3">
+              <div class="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800 flex items-center justify-center shadow-xl">
+                <${CoinLogo} size=${38} />
+              </div>
+              <div class="text-center">
+                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
+                <p class="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p>
+              </div>
+            </div>
+
+            <!-- Card formulário -->
+            <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+
+              <!-- Abas -->
+              <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
+                <button class=${!isCad ? tabAtivo : tabInativ} onClick=${function() { setModo('entrar'); limpar(); }}>Entrar</button>
+                <button class=${isCad  ? tabAtivo : tabInativ} onClick=${function() { setModo('cadastrar'); limpar(); }}>Criar Conta</button>
+              </div>
+
+              <!-- Campos -->
+              <div class="space-y-3">
+                <div class="space-y-1.5">
+                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">E-mail</label>
+                  <input
+                    type="email"
+                    value=${email}
+                    onChange=${function(e) { setEmail(e.target.value); limpar(); }}
+                    onKeyDown=${onKey}
+                    placeholder="voce@email.com"
+                    autocomplete="email"
+                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Senha</label>
+                  <input
+                    type="password"
+                    value=${senha}
+                    onChange=${function(e) { setSenha(e.target.value); limpar(); }}
+                    onKeyDown=${onKey}
+                    placeholder="••••••••"
+                    autocomplete=${isCad ? 'new-password' : 'current-password'}
+                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                  />
+                  ${isCad && html`<p class="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>`}
+                </div>
+              </div>
+
+              <!-- Erro -->
+              ${erro && html`
+                <div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3">
+                  <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                  <p class="text-xs text-red-300">${erro}</p>
+                </div>`}
+
+              <!-- Sucesso (cadastro) -->
+              ${sucesso && html`
+                <div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3">
+                  <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <p class="text-xs text-emerald-300">${sucesso}</p>
+                </div>`}
+
+              <!-- CTA principal -->
+              <button
+                onClick=${isCad ? handleCadastrar : handleEntrar}
+                disabled=${loading}
+                class="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm"
+              >
+                ${loading
+                  ? html`<${Spinner} size="w-4 h-4" />`
+                  : isCad ? 'Criar minha conta' : 'Entrar na minha conta'
+                }
+              </button>
+
+              ${MODO_LOCAL && html`
+                <p class="text-[9px] text-amber-600/80 text-center leading-relaxed">
+                  ⚠️ Modo local ativo. Configure as credenciais do Supabase para habilitar login.
+                </p>`}
+            </div>
+
+            <p class="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
+              Ao continuar você concorda com os termos de uso.<br/>
+              Seus dados são protegidos e nunca compartilhados.
+            </p>
+          </div>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🏠  APP PRINCIPAL (usuário autenticado)
+    // ═══════════════════════════════════════════════════════════════════════════
+    function MainApp({ user }) {
+      const [valor,        setValor]        = useState('');
+      const [resultado,    setResultado]    = useState(null);
+      const [perfil,       setPerfil]       = useState('moderado');
+      const [openCard,     setOpenCard]     = useState(null);
+      const [selic,        setSelic]        = useState(SELIC_FALLBACK);
+      const [selicIsLive,  setSelicIsLive]  = useState(false);
+      const [selicLoading, setSelicLoading] = useState(true);
+      const [dbReady,      setDbReady]      = useState(false);
+      const [saving,       setSaving]       = useState(false);
+
+      // ── Carrega portfolio ao montar ───────────────────────────────────────
+      useEffect(function() {
+        (async function() {
+          const data = await dbLoad(user.id);
+          if (data.perfil && PERFIS[data.perfil]) setPerfil(data.perfil);
+          if (data.aporte !== null && !isNaN(data.aporte) && data.aporte > 0) {
+            setValor(String(data.aporte));
+            setResultado(data.aporte);
+          }
+          setDbReady(true);
+        })();
+      }, [user.id]);
+
+      // ── Selic ao vivo ─────────────────────────────────────────────────────
+      useEffect(function() {
+        const ctrl = new AbortController();
+        const tid  = setTimeout(function() { ctrl.abort(); }, 5000);
+        (async function() {
+          try {
+            const res  = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json', { signal: ctrl.signal });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            const d = parseFloat(json[0]?.valor);
+            if (isNaN(d)) throw new Error('inválido');
+            setSelic(parseFloat(((Math.pow(1 + d / 100, 252) - 1) * 100).toFixed(2)));
+            setSelicIsLive(true);
+          } catch (_) { setSelic(SELIC_FALLBACK); setSelicIsLive(false); }
+          finally { clearTimeout(tid); setSelicLoading(false); }
+        })();
+        return function() { ctrl.abort(); clearTimeout(tid); };
+      }, []);
+
+      // ── Simular ───────────────────────────────────────────────────────────
+      const calcular = useCallback(async function() {
+        const v = parseFloat(valor);
+        if (isNaN(v) || v <= 0) return;
+        setResultado(v);
+        setSaving(true);
+        await dbSave(user.id, v, perfil);
+        setSaving(false);
+      }, [valor, perfil, user.id]);
+
+      // ── Mudar perfil ──────────────────────────────────────────────────────
+      async function handlePerfilChange(key) {
+        setPerfil(key);
+        const v = parseFloat(valor);
+        setSaving(true);
+        await dbSave(user.id, isNaN(v) ? null : v, key);
+        setSaving(false);
+      }
+
+      function handleKeyDown(e) { if (e.key === 'Enter') calcular(); }
+      function toggleCard(id)   { setOpenCard(function(p) { return p === id ? null : id; }); }
+      async function handleSignOut() { await sbClient.auth.signOut(); }
+
+      // Loading inicial do DB
+      if (!dbReady) {
+        return html`
+          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
+            <${Spinner} size="w-7 h-7" />
+            <p class="text-xs text-slate-500">Carregando sua carteira…</p>
+          </div>`;
+      }
+
+      // Exibir e-mail abreviado no header
+      const emailCurto = user.email ? user.email.split('@')[0] : '';
+
+      return html`
+        <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10 fade-up">
+
+          <!-- HEADER -->
+          <header class="pt-5 flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <${CoinLogo} size=${26} />
+                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
+              </div>
+              <p class="text-xs text-slate-500 mt-1 ml-8 truncate">Olá, ${emailCurto} 👋</p>
+            </div>
+            <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+              <${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} />
+              <button
+                onClick=${handleSignOut}
+                class="signout-btn flex items-center gap-1 text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/80"
+              >
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
+                </svg>
+                Sair
+              </button>
+            </div>
+          </header>
+
+          <!-- GRÁFICO -->
+          <${GraficoCard} resultado=${resultado} perfil=${perfil} selic=${selic} />
+
+          <!-- SIMULADOR -->
+          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Simulador de Aporte</h2>
+              <div class="flex items-center gap-2">
+                ${saving && html`<${Spinner} size="w-3 h-3" />`}
+                ${!selicLoading && html`<span class="text-[9px] text-slate-600">Selic ${selic.toFixed(1)}% a.a.</span>`}
+              </div>
+            </div>
+
+            <${PerfilSelector} perfil=${perfil} onChange=${handlePerfilChange} />
+
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold select-none">R$</span>
+                <input
+                  type="number"
+                  value=${valor}
+                  onChange=${function(e) { setValor(e.target.value); }}
+                  onKeyDown=${handleKeyDown}
+                  placeholder="0,00"
+                  min="0"
+                  step="any"
+                  class="w-full pl-10 pr-3 py-3 bg-[#0d1117] rounded-xl border border-slate-700 focus:outline-none focus:border-[#34d399] text-slate-100 placeholder-slate-600 text-sm transition-colors"
+                />
+              </div>
+              <button onClick=${calcular} class="sim-btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 px-5 rounded-xl font-bold text-sm">
+                Simular
+              </button>
+            </div>
+
+            ${resultado !== null && html`
+              <${ResultadoAlocacao}
+                resultado=${resultado}
+                perfil=${perfil}
+                selic=${selic}
+                selicIsLive=${selicIsLive}
+                selicLoading=${selicLoading}
+              />`}
+          </section>
+
+          <!-- OPORTUNIDADES -->
+          <section class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">🔥 Top 3 Oportunidades</h2>
+              <span class="text-[9px] text-slate-600">Clique para saber mais</span>
+            </div>
+            ${OPORTUNIDADES.map(function(op) {
+              return html`
+                <${OportunidadeCard}
+                  key=${op.id}
+                  op=${op}
+                  isOpen=${openCard === op.id}
+                  onToggle=${function() { toggleCard(op.id); }}
+                />`;
+            })}
+          </section>
+
+          <!-- FOOTER -->
+          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-1">
+            <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
+              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro.
+            </p>
+            <p class="text-[8px] text-slate-700">© 2025 Minhas Moedinhas · Feito com 💚 no Brasil</p>
+          </footer>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🏗️  ROOT — orquestra sessão Supabase e decide qual tela renderizar
+    // ═══════════════════════════════════════════════════════════════════════════
+    function Root() {
+      // null = verificando | false = não logado | object = user logado
+      const [user,        setUser]        = useState(null);
+      const [authReady,   setAuthReady]   = useState(false);
+
+      useEffect(function() {
+        // 1) Lê sessão existente (ex: reload da página)
+        sbClient.auth.getSession().then(function(res) {
+          setUser(res.data?.session?.user ?? false);
+          setAuthReady(true);
+        });
+
+        // 2) Escuta mudanças em tempo real (sign-in, sign-out, token refresh)
+        const sub = sbClient.auth.onAuthStateChange(function(_event, session) {
+          setUser(session?.user ?? false);
+          setAuthReady(true);
+        });
+
+        // onAuthStateChange retorna { data: { subscription } }
+        return function() {
+          var s = sub.data && sub.data.subscription ? sub.data.subscription : sub;
+          if (s && typeof s.unsubscribe === 'function') s.unsubscribe();
+        };
+      }, []);
+
+      // Verificação inicial de sessão
+      if (!authReady) {
+        return html`
+          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
+            <${Spinner} size="w-8 h-8" />
+            <p class="text-xs text-slate-500">Carregando…</p>
+          </div>`;
+      }
+
+      if (!user) return html`<${LoginScreen} />`;
+      return html`<${MainApp} user=${user} />`;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(html`<${Root} />`);
+  </script>
 </body>
 </html>
