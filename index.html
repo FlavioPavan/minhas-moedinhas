@@ -136,6 +136,25 @@
     .whatsapp-btn:active {
       transform: scale(0.97);
     }
+
+    /* Gamificação badges */
+    .badge-off {
+      filter: grayscale(1);
+      opacity: 0.4;
+      transition: all 0.4s ease;
+    }
+    .badge-on {
+      filter: grayscale(0);
+      opacity: 1;
+      transition: all 0.4s ease;
+    }
+    .badge-pulse {
+      animation: pulse-badge 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-badge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
   </style>
 </head>
 <body class="bg-[#0d1117] text-slate-100 antialiased">
@@ -149,7 +168,7 @@
     // ☁️  SUPABASE — credenciais atuais
     // ═══════════════════════════════════════════════════════════════════════════
     const SUPABASE_URL      = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjYyNjEsImV4cCI6MjA5NzI0MjI2MX0.ntq4ABMCXOhvjI-yU5XH7bclEGMVY0_72Admuid1Zn4';
+    const SUPABASE_ANON_KEY = 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5';
 
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -495,8 +514,8 @@
         : 'bg-transparent border-transparent text-slate-500 hover:text-slate-400');
 
       return html`
-        <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl">
-          <div class="flex items-center justify-between mb-4">
+        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
             <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">
               ${modoHist ? 'Evolução do Patrimônio' : 'Projeção — 12 meses'}
             </h2>
@@ -508,44 +527,43 @@
 
           ${!modoHist && !temAporte
             ? html`
-                <div class="h-28 flex flex-col items-center justify-center gap-2 border border-dashed border-slate-700/60 rounded-xl bg-[#0d1117]/30">
+                <div class="h-24 flex flex-col items-center justify-center gap-2 border border-dashed border-slate-700/60 rounded-xl bg-[#0d1117]/30">
                   <span class="text-xl">💡</span>
-                  <p class="text-[11px] text-slate-500 text-center leading-relaxed">
+                  <p class="text-[10px] text-slate-500 text-center leading-relaxed">
                     Digite um valor no simulador<br/>abaixo para ver a projeção.
                   </p>
                 </div>`
             : html`
-                <div class="flex items-end justify-between h-28 gap-1 px-0.5">
+                <div class="flex items-end justify-between h-24 gap-1 px-0.5">
                   ${dados.map(function(item) {
-                    const pct    = Math.max((item.valor / maxVal) * 100, 2); // mínimo 2% para visualização
+                    const pct    = Math.max((item.valor / maxVal) * 100, 2);
                     const barCls = modoHist
-                      ? 'bar-animate bar-hist w-full rounded-t-sm cursor-default'
-                      : 'bar-animate bar-proj w-full rounded-t-sm cursor-default';
+                      ? 'bar-animate bar-hist w-full rounded-t-sm cursor-default hover:ring-1 hover:ring-[#34d399] hover:ring-inset'
+                      : 'bar-animate bar-proj w-full rounded-t-sm cursor-default hover:ring-1 hover:ring-indigo-400 hover:ring-inset';
                     const valFmt = item.valor >= 1000
                       ? 'R$' + (item.valor / 1000).toFixed(1) + 'k'
                       : 'R$' + item.valor.toFixed(0);
                     const hSty   = { height: pct + '%', minHeight: '4px' };
-                    const displayVal = showValues ? valFmt : '•';
                     return html`
                       <div key=${item.mes} class="bar-wrap flex flex-col items-center w-full relative">
                         <span class="bar-tooltip">${showValues ? valFmt : '••••'}</span>
                         <div class=${barCls} style=${hSty}></div>
-                        <span class="text-[9px] mt-1.5 text-slate-600 font-medium">${item.mes}</span>
+                        <span class="text-[8px] mt-1 text-slate-600 font-medium">${item.mes}</span>
                       </div>`;
                   })}
                 </div>`
           }
 
-          <div class="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between">
+          <div class="mt-2 pt-2 border-t border-slate-800/60 flex items-center justify-between">
             ${modoHist
               ? html`
-                  <span class="text-[10px] text-slate-500">Total acumulado</span>
+                  <span class="text-[9px] text-slate-500">Total acumulado</span>
                   <span class="text-sm font-bold text-[#34d399] ${showValues ? '' : 'privacy-blur'}">
                     ${showValues ? 'R$ ' + fmtBRL(historicoDinamico[historicoDinamico.length-1].valor) : 'R$ ••••'}
                   </span>`
               : temAporte
                 ? html`
-                    <span class="text-[10px] text-slate-500">Projeção em 12 meses</span>
+                    <span class="text-[9px] text-slate-500">Projeção em 12 meses</span>
                     <span class="text-sm font-bold text-indigo-300 ${showValues ? '' : 'privacy-blur'}">
                       ${showValues ? 'R$ ' + fmtBRL(projecao[projecao.length-1].valor) : 'R$ ••••'}
                     </span>`
@@ -751,6 +769,176 @@
         </a>`;
     }
 
+    // ── Componente de Conquistas (Badges) ────────────────────────────────────
+    function Badge({ emoji, label, active, description }) {
+      const cls = active ? 'badge-on badge-pulse' : 'badge-off';
+      return html`
+        <div class="flex flex-col items-center gap-1 ${cls}" title=${description}>
+          <span class="text-2xl">${emoji}</span>
+          <span class="text-[8px] text-slate-400 font-medium">${label}</span>
+        </div>`;
+    }
+
+    function Conquistas({ hasAporte, perfilChanged, hasHighAporte }) {
+      return html`
+        <div class="bg-[#1a2233] p-3 rounded-2xl border border-slate-800 shadow-xl">
+          <div class="flex justify-between items-center px-2">
+            <span class="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Minhas Conquistas</span>
+            <span class="text-[8px] text-slate-600">Desbloqueie medalhas</span>
+          </div>
+          <div class="flex justify-around mt-2">
+            <${Badge} emoji="🪙" label="Primeiro Passo" active=${hasAporte} description="Aporte simulado maior que R$ 0" />
+            <${Badge} emoji="🧠" label="Perfil Definido" active=${perfilChanged} description="Você já alterou seu perfil de investimento" />
+            <${Badge} emoji="🚀" label="Poupador" active=${hasHighAporte} description="Aporte simulado acima de R$ 100" />
+          </div>
+        </div>`;
+    }
+
+    // ── Componente "Meus Sonhos" ──────────────────────────────────────────────
+    function SonhosCard() {
+      const [nome, setNome] = useState('');
+      const [valorTotal, setValorTotal] = useState('');
+      const [guardarMensal, setGuardarMensal] = useState('');
+      const [meses, setMeses] = useState(null);
+      const [calculado, setCalculado] = useState(false);
+
+      function calcular() {
+        const total = parseFloat(valorTotal);
+        const mensal = parseFloat(guardarMensal);
+        if (!nome.trim() || isNaN(total) || total <= 0 || isNaN(mensal) || mensal <= 0) {
+          setMeses(null);
+          setCalculado(false);
+          return;
+        }
+        const m = Math.ceil(total / mensal);
+        setMeses(m);
+        setCalculado(true);
+      }
+
+      return html`
+        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🎯</span>
+            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Meus Sonhos</h2>
+          </div>
+          <div class="space-y-2">
+            <input
+              type="text"
+              value=${nome}
+              onChange=${function(e) { setNome(e.target.value); setCalculado(false); }}
+              placeholder="Nome do sonho (ex: Trocar pneus)"
+              class="w-full px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
+            />
+            <div class="flex gap-2">
+              <input
+                type="number"
+                value=${valorTotal}
+                onChange=${function(e) { setValorTotal(e.target.value); setCalculado(false); }}
+                placeholder="Valor total (R$)"
+                min="0"
+                step="any"
+                class="w-1/2 px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
+              />
+              <input
+                type="number"
+                value=${guardarMensal}
+                onChange=${function(e) { setGuardarMensal(e.target.value); setCalculado(false); }}
+                placeholder="Guardar por mês (R$)"
+                min="0"
+                step="any"
+                class="w-1/2 px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
+              />
+            </div>
+            <button
+              onClick=${calcular}
+              class="w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-2 rounded-xl transition-colors"
+            >
+              Calcular tempo
+            </button>
+            ${calculado && meses !== null && html`
+              <div class="text-center text-xs text-slate-300 bg-[#0d1117]/50 p-2 rounded-xl border border-slate-700/40">
+                <p>
+                  Faltam <strong class="text-[#34d399]">${meses} ${meses === 1 ? 'mês' : 'meses'}</strong>
+                  para você realizar o sonho de <strong class="text-slate-100">${nome}</strong>!
+                  Você consegue! 💪
+                </p>
+              </div>
+            `}
+          </div>
+        </section>`;
+    }
+
+    // ── Componente Gerenciador de Moedinhas (Fluxo) ──────────────────────────
+    function FluxoCaixa({ setValorSimulador }) {
+      const [entrou, setEntrou] = useState('');
+      const [saiu, setSaiu] = useState('');
+      const [sobra, setSobra] = useState(null);
+
+      function atualizarSobra() {
+        const e = parseFloat(entrou) || 0;
+        const s = parseFloat(saiu) || 0;
+        const diff = e - s;
+        setSobra(diff);
+        if (diff > 0) {
+          setValorSimulador(String(diff));
+        } else {
+          setValorSimulador('');
+        }
+      }
+
+      return html`
+        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🪙</span>
+            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Gerenciador de Moedinhas</h2>
+          </div>
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">+</span>
+                <input
+                  type="number"
+                  value=${entrou}
+                  onChange=${function(e) { setEntrou(e.target.value); setSobra(null); }}
+                  placeholder="Entrou"
+                  min="0"
+                  step="any"
+                  class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
+                />
+              </div>
+              <div class="relative flex-1">
+                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">-</span>
+                <input
+                  type="number"
+                  value=${saiu}
+                  onChange=${function(e) { setSaiu(e.target.value); setSobra(null); }}
+                  placeholder="Saiu"
+                  min="0"
+                  step="any"
+                  class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
+                />
+              </div>
+              <button
+                onClick=${atualizarSobra}
+                class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
+              >
+                Atualizar
+              </button>
+            </div>
+            ${sobra !== null && html`
+              <div class="text-center text-xs text-slate-300 bg-[#0d1117]/50 p-2 rounded-xl border border-slate-700/40">
+                <p>
+                  Sobra do mês: <strong class=${sobra >= 0 ? 'text-[#34d399]' : 'text-red-400'}>
+                    ${sobra >= 0 ? 'R$ ' + fmtBRL(sobra) : '-R$ ' + fmtBRL(Math.abs(sobra))}
+                  </strong>
+                  ${sobra > 0 ? ' 🎉' : sobra < 0 ? ' 😅' : ''}
+                </p>
+              </div>
+            `}
+          </div>
+        </section>`;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // 🔐  TELA DE LOGIN
     // ═══════════════════════════════════════════════════════════════════════════
@@ -764,7 +952,6 @@
 
       function limpar() { setErro(''); setSucesso(''); }
 
-      // ── Login com e-mail + senha ──────────────────────────────────────────
       async function handleEntrar() {
         if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
         setLoading(true); limpar();
@@ -772,7 +959,6 @@
         if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
       }
 
-      // ── Cadastro com e-mail + senha ───────────────────────────────────────
       async function handleCadastrar() {
         if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
         setLoading(true); limpar();
@@ -782,7 +968,6 @@
         setLoading(false);
       }
 
-      // ── Login com Google (OAuth) ──────────────────────────────────────────
       async function handleGoogle() {
         setLoading(true); limpar();
         const { error } = await sbClient.auth.signInWithOAuth({
@@ -926,6 +1111,7 @@
       const [valor,        setValor]        = useState('');
       const [resultado,    setResultado]    = useState(null);
       const [perfil,       setPerfil]       = useState('moderado');
+      const [perfilChanged, setPerfilChanged] = useState(false);
       const [openCard,     setOpenCard]     = useState(null);
       const [selic,        setSelic]        = useState(SELIC_FALLBACK);
       const [selicIsLive,  setSelicIsLive]  = useState(false);
@@ -989,6 +1175,7 @@
       // ── Mudar perfil ──────────────────────────────────────────────────────
       async function handlePerfilChange(key) {
         setPerfil(key);
+        setPerfilChanged(true);
         var v = parseFloat(valor);
         setSaving(true);
         await dbSave(user.id, isNaN(v) ? null : v, key);
@@ -1008,6 +1195,8 @@
       }
 
       var emailCurto = user.email ? user.email.split('@')[0] : 'investidor';
+      var hasAporte = resultado !== null && resultado > 0;
+      var hasHighAporte = resultado !== null && resultado > 100;
 
       return html`
         <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10 fade-up">
@@ -1047,8 +1236,8 @@
             <${TickersBar} tickers=${tickers} />
           </header>
 
-          <!-- GRÁFICO -->
-          <${GraficoCard} resultado=${resultado} perfil=${perfil} selic=${selic} showValues=${showValues} />
+          <!-- CONQUISTAS -->
+          <${Conquistas} hasAporte=${hasAporte} perfilChanged=${perfilChanged} hasHighAporte=${hasHighAporte} />
 
           <!-- SIMULADOR -->
           <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
@@ -1091,6 +1280,15 @@
                 showValues=${showValues}
               />`}
           </section>
+
+          <!-- GRÁFICO (movido para baixo do simulador) -->
+          <${GraficoCard} resultado=${resultado} perfil=${perfil} selic=${selic} showValues=${showValues} />
+
+          <!-- GERENCIADOR DE MOEDINHAS -->
+          <${FluxoCaixa} setValorSimulador=${setValor} />
+
+          <!-- MEUS SONHOS -->
+          <${SonhosCard} />
 
           <!-- BANNER DE MONETIZAÇÃO -->
           <${MonetizationBanner} />
