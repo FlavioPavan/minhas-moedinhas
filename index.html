@@ -225,7 +225,7 @@
             id: 'tesouro-selic-2029', emoji: '🏛️', titulo: 'Tesouro Selic 2029',
             subtitulo: 'Renda Fixa · Risco Baixíssimo',
             tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40',
-            descricao: 'O título público mais seguro do país, com rentabilidade diária atrelada à Selic. Ideal para reserva de emergência e aportes iniciais, com liquidez diária e risco soberano.',
+            descricao: 'O título público mais seguro do país, com rentabilidade diária atrelada à Selic. Ideal para reserva de emergência e aportes iniciais, com liquidez diária and risco soberano.',
             cta: 'Investir no Tesouro Selic', href: 'https://www.tesourodireto.com.br/titulos/selic.htm',
             destaque: 'Segurança máxima e liquidez diária — a porta de entrada perfeita.'
           },
@@ -757,7 +757,7 @@
       );
       return html`
         <a
-          href=${'https://api.whatsapp.com/send?text=' + url}
+          href="https://api.whatsapp.com/send?text=${url}"
           target="_blank"
           rel="noopener noreferrer"
           class="whatsapp-btn flex items-center gap-1.5 text-xs text-slate-300 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 rounded-full px-3 py-1.5 transition-all"
@@ -1316,9 +1316,9 @@
               <${WhatsAppButton} />
             </div>
             <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
-              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investmento. Rentabilidade passada não garante retorno futuro.
+              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro.
             </p>
-            <p class="text-[8px] text-slate-700">© 2025 Minhas Moedinhas · Feito com 💚 no Brasil</p>
+            <p class="text-[8px] text-slate-700">© 2026 Minhas Moedinhas · Feito com 💚 no Brasil</p>
           </footer>
         </div>`;
     }
