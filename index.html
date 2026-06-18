@@ -116,7 +116,7 @@
     // ☁️  SUPABASE — credenciais atuais
     // ═══════════════════════════════════════════════════════════════════════════
     const SUPABASE_URL      = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwNjU3MjYsImV4cCI6MjA2MDY0MTcyNn0.Oqa1qW1X5kxs8e8F3x7K3c1pCqJvLz5bQd5MvGZ3vQ8'; // chave fictícia, usar a real em produção
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwNjU3MjYsImV4cCI6MjA2MDY0MTcyNn0.Oqa1qW1X5kxs8e8F3x7K3c1pCqJvLz5bQd5MvGZ3vQ8';
 
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -330,6 +330,28 @@
       });
     }
 
+    // ── Gerador de tickers simulados (CDI, IBOV, IFIX) ──────────────────────
+    function useTickersSimulados() {
+      const [tickers, setTickers] = useState({
+        cdi: 12.15,
+        ibov: 126000,
+        ifix: 3500
+      });
+
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setTickers(prev => ({
+            cdi: prev.cdi + (Math.random() - 0.5) * 0.02,
+            ibov: prev.ibov + (Math.random() - 0.5) * 200,
+            ifix: prev.ifix + (Math.random() - 0.5) * 5
+          }));
+        }, 5000);
+        return () => clearInterval(interval);
+      }, []);
+
+      return tickers;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // 🧩  COMPONENTES ATÔMICOS
     // ═══════════════════════════════════════════════════════════════════════════
@@ -374,6 +396,25 @@
           <span class=${'w-1.5 h-1.5 rounded-full pulse-dot inline-block ' + dotCls}></span>
           <span class=${'font-semibold ' + txtCls}>${selic.toFixed(2)}% a.a.</span>
           <span class="text-slate-500">${label}</span>
+        </div>`;
+    }
+
+    // ── Tickers Badge ──────────────────────────────────────────────────────────
+    function TickersBar({ tickers }) {
+      return html`
+        <div class="flex flex-wrap gap-2 text-[9px] text-slate-400 bg-slate-800/40 px-2.5 py-1.5 rounded-full border border-slate-700/40 mt-1">
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400/70"></span>
+            CDI: <span class="text-indigo-300 font-medium">${tickers.cdi.toFixed(2)}%</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span>
+            IBOV: <span class="text-emerald-300 font-medium">${Math.round(tickers.ibov).toLocaleString('pt-BR')}</span>
+          </span>
+          <span class="flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/70"></span>
+            IFIX: <span class="text-amber-300 font-medium">${Math.round(tickers.ifix).toLocaleString('pt-BR')}</span>
+          </span>
         </div>`;
     }
 
@@ -512,4 +553,485 @@
                         </p>`}
                     </div>
                   </div>
-                  <span class=${'font-bold
+                  <span class=${'font-bold text-sm flex-shrink-0 ' + a.cor}>${displayBruto}</span>
+                </div>
+                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div class=${'h-full rounded-full progress-fill ' + a.bg} style=${wSty}></div>
+                </div>
+              </div>`;
+          })}
+          <p class="text-[9px] text-slate-600 text-center pt-1">
+            Projeção RF com Selic ${selic.toFixed(1)}% a.a.
+            ${selicIsLive ? ' (ao vivo)' : ' (média de mercado)'}
+            · Não é recomendação de investimento.
+          </p>
+        </div>`;
+    }
+
+    // ── Card Oportunidade (Acordeão) ──────────────────────────────────────────
+    function OportunidadeCard({ op, isOpen, onToggle }) {
+      const bdrCls  = isOpen ? 'border-[#34d399]/40' : 'border-slate-800';
+      const cardCls = 'bg-[#1a2233] rounded-2xl border transition-all duration-300 card-glow overflow-hidden ' + bdrCls;
+      const bodyCls = isOpen ? 'accordion-body open' : 'accordion-body';
+      const svgCls  = 'w-4 h-4 text-slate-500 transition-transform duration-300 flex-shrink-0 ' + (isOpen ? 'rotate-180' : '');
+
+      return html`
+        <div class=${cardCls}>
+          <button class="w-full flex items-center justify-between p-4 text-left" onClick=${onToggle} aria-expanded=${isOpen}>
+            <div class="flex items-center gap-3">
+              <span class="text-2xl leading-none">${op.emoji}</span>
+              <div>
+                <p class="text-sm font-bold text-slate-100">${op.titulo}</p>
+                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block ' + op.tagColor}>
+                  ${op.subtitulo}
+                </span>
+              </div>
+            </div>
+            <svg class=${svgCls} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class=${bodyCls}>
+            <div class="px-4 pb-4 space-y-3">
+              <div class="h-px bg-slate-700/50"></div>
+              <p class="text-xs text-slate-300 leading-relaxed">${op.descricao}</p>
+              <div class="bg-[#0d1117]/60 rounded-xl p-3 border border-slate-700/40">
+                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1">Por que considerar?</p>
+                <p class="text-xs text-[#34d399] font-medium">${op.destaque}</p>
+              </div>
+              <a
+                href=${op.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick=${function(e) { e.stopPropagation(); }}
+                class="flex items-center justify-center gap-2 w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-3 rounded-xl transition-colors duration-200"
+              >
+                ${op.cta}
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+              </a>
+              <p class="text-[9px] text-slate-600 text-center">Link de parceiro. Analise sempre antes de investir.</p>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🔐  TELA DE LOGIN
+    // ═══════════════════════════════════════════════════════════════════════════
+    function LoginScreen() {
+      const [modo,    setModo]    = useState('entrar'); // 'entrar' | 'cadastrar'
+      const [email,   setEmail]   = useState('');
+      const [senha,   setSenha]   = useState('');
+      const [erro,    setErro]    = useState('');
+      const [sucesso, setSucesso] = useState('');
+      const [loading, setLoading] = useState(false);
+
+      function limpar() { setErro(''); setSucesso(''); }
+
+      // ── Login com e-mail + senha ──────────────────────────────────────────
+      async function handleEntrar() {
+        if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
+        setLoading(true); limpar();
+        const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
+        if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
+      }
+
+      // ── Cadastro com e-mail + senha ───────────────────────────────────────
+      async function handleCadastrar() {
+        if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
+        setLoading(true); limpar();
+        const { error } = await sbClient.auth.signUp({ email, password: senha });
+        if (error) { setErro(traduzirErro(error.message)); }
+        else { setSucesso('Conta criada! Verifique seu e-mail para confirmar o cadastro.'); }
+        setLoading(false);
+      }
+
+      // ── Login com Google (OAuth) ──────────────────────────────────────────
+      async function handleGoogle() {
+        setLoading(true); limpar();
+        const { error } = await sbClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
+      }
+
+      function onKey(e) {
+        if (e.key !== 'Enter') return;
+        if (modo === 'entrar') handleEntrar(); else handleCadastrar();
+      }
+
+      const isCad    = modo === 'cadastrar';
+      const tabBase  = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
+      const tabAtivo = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
+      const tabOff   = tabBase + 'text-slate-500 hover:text-slate-300';
+
+      return html`
+        <div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+          <div class="w-full max-w-sm fade-up">
+
+            <!-- Marca -->
+            <div class="flex flex-col items-center mb-8 gap-3">
+              <div class="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800 flex items-center justify-center shadow-xl">
+                <${CoinLogo} size=${38} />
+              </div>
+              <div class="text-center">
+                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
+                <p class="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p>
+              </div>
+            </div>
+
+            <!-- Card -->
+            <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+
+              <!-- Abas Entrar / Criar Conta -->
+              <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
+                <button class=${!isCad ? tabAtivo : tabOff} onClick=${function() { setModo('entrar'); limpar(); }}>
+                  Entrar
+                </button>
+                <button class=${isCad ? tabAtivo : tabOff} onClick=${function() { setModo('cadastrar'); limpar(); }}>
+                  Criar Conta
+                </button>
+              </div>
+
+              <!-- Campos -->
+              <div class="space-y-3">
+                <div class="space-y-1.5">
+                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">E-mail</label>
+                  <input
+                    type="email"
+                    value=${email}
+                    onChange=${function(e) { setEmail(e.target.value); limpar(); }}
+                    onKeyDown=${onKey}
+                    placeholder="voce@email.com"
+                    autocomplete="email"
+                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Senha</label>
+                  <input
+                    type="password"
+                    value=${senha}
+                    onChange=${function(e) { setSenha(e.target.value); limpar(); }}
+                    onKeyDown=${onKey}
+                    placeholder="••••••••"
+                    autocomplete=${isCad ? 'new-password' : 'current-password'}
+                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
+                  />
+                  ${isCad && html`<p class="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>`}
+                </div>
+              </div>
+
+              <!-- Mensagem de erro -->
+              ${erro && html`
+                <div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3">
+                  <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                  <p class="text-xs text-red-300">${erro}</p>
+                </div>`}
+
+              <!-- Mensagem de sucesso (cadastro) -->
+              ${sucesso && html`
+                <div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3">
+                  <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <p class="text-xs text-emerald-300">${sucesso}</p>
+                </div>`}
+
+              <!-- Botão principal (Entrar / Criar conta) -->
+              <button
+                onClick=${isCad ? handleCadastrar : handleEntrar}
+                disabled=${loading}
+                class="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm"
+              >
+                ${loading
+                  ? html`<${Spinner} size="w-4 h-4" />`
+                  : isCad ? 'Criar minha conta' : 'Entrar na minha conta'
+                }
+              </button>
+
+              <!-- Separador + Google OAuth -->
+              <div class="flex items-center gap-3">
+                <div class="h-px flex-1 bg-slate-800"></div>
+                <span class="text-[10px] text-slate-600 font-medium">ou continue com</span>
+                <div class="h-px flex-1 bg-slate-800"></div>
+              </div>
+              <button
+                onClick=${handleGoogle}
+                disabled=${loading}
+                class="google-btn w-full flex items-center justify-center gap-2.5 bg-[#0d1117] border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continuar com Google
+              </button>
+
+            </div>
+
+            <p class="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
+              Ao continuar você concorda com os termos de uso.<br/>
+              Seus dados são protegidos e nunca compartilhados.
+            </p>
+          </div>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🏠  APP PRINCIPAL
+    // ═══════════════════════════════════════════════════════════════════════════
+    function MainApp({ user }) {
+      const [valor,        setValor]        = useState('');
+      const [resultado,    setResultado]    = useState(null);
+      const [perfil,       setPerfil]       = useState('moderado');
+      const [openCard,     setOpenCard]     = useState(null);
+      const [selic,        setSelic]        = useState(SELIC_FALLBACK);
+      const [selicIsLive,  setSelicIsLive]  = useState(false);
+      const [selicLoading, setSelicLoading] = useState(true);
+      const [dbReady,      setDbReady]      = useState(false);
+      const [saving,       setSaving]       = useState(false);
+      const [showValues,   setShowValues]   = useState(true);
+
+      const tickers = useTickersSimulados();
+
+      // ── Carrega portfolio ao montar ───────────────────────────────────────
+      useEffect(function() {
+        (async function() {
+          const data = await dbLoad(user.id);
+          if (data.perfil && PERFIS[data.perfil]) setPerfil(data.perfil);
+          if (data.aporte !== null && !isNaN(data.aporte) && data.aporte > 0) {
+            setValor(String(data.aporte));
+            setResultado(data.aporte);
+          }
+          setDbReady(true);
+        })();
+      }, [user.id]);
+
+      // ── Selic ao vivo ─────────────────────────────────────────────────────
+      useEffect(function() {
+        var ctrl = new AbortController();
+        var tid  = setTimeout(function() { ctrl.abort(); }, 5000);
+        (async function() {
+          try {
+            var res  = await fetch(
+              'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json',
+              { signal: ctrl.signal }
+            );
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            var json = await res.json();
+            var d = parseFloat(json[0]?.valor);
+            if (isNaN(d)) throw new Error('inválido');
+            setSelic(parseFloat(((Math.pow(1 + d / 100, 252) - 1) * 100).toFixed(2)));
+            setSelicIsLive(true);
+          } catch (_) {
+            setSelic(SELIC_FALLBACK);
+            setSelicIsLive(false);
+          } finally {
+            clearTimeout(tid);
+            setSelicLoading(false);
+          }
+        })();
+        return function() { ctrl.abort(); clearTimeout(tid); };
+      }, []);
+
+      // ── Simular ───────────────────────────────────────────────────────────
+      var calcular = useCallback(async function() {
+        var v = parseFloat(valor);
+        if (isNaN(v) || v <= 0) return;
+        setResultado(v);
+        setSaving(true);
+        await dbSave(user.id, v, perfil);
+        setSaving(false);
+      }, [valor, perfil, user.id]);
+
+      // ── Mudar perfil ──────────────────────────────────────────────────────
+      async function handlePerfilChange(key) {
+        setPerfil(key);
+        var v = parseFloat(valor);
+        setSaving(true);
+        await dbSave(user.id, isNaN(v) ? null : v, key);
+        setSaving(false);
+      }
+
+      function handleKeyDown(e) { if (e.key === 'Enter') calcular(); }
+      function toggleCard(id)   { setOpenCard(function(p) { return p === id ? null : id; }); }
+
+      // Loading do DB
+      if (!dbReady) {
+        return html`
+          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
+            <${Spinner} size="w-7 h-7" />
+            <p class="text-xs text-slate-500">Carregando sua carteira…</p>
+          </div>`;
+      }
+
+      var emailCurto = user.email ? user.email.split('@')[0] : 'investidor';
+
+      return html`
+        <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10 fade-up">
+
+          <!-- HEADER -->
+          <header class="pt-5 flex flex-col gap-2">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <${CoinLogo} size=${26} />
+                  <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 ml-8 truncate">Olá, ${emailCurto} 👋</p>
+              </div>
+              <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                <div class="flex items-center gap-2">
+                  <button
+                    onClick=${function() { setShowValues(!showValues); }}
+                    class="text-slate-400 hover:text-[#34d399] transition-colors p-1.5 rounded-full hover:bg-slate-800/50"
+                    aria-label=${showValues ? 'Ocultar valores' : 'Mostrar valores'}
+                  >
+                    ${showValues ? '👁️' : '🙈'}
+                  </button>
+                  <${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} />
+                </div>
+                <button
+                  onClick=${function() { sbClient.auth.signOut(); }}
+                  class="signout-btn flex items-center gap-1 text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/80"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
+                  </svg>
+                  Sair
+                </button>
+              </div>
+            </div>
+            <${TickersBar} tickers=${tickers} />
+          </header>
+
+          <!-- GRÁFICO -->
+          <${GraficoCard} resultado=${resultado} perfil=${perfil} selic=${selic} showValues=${showValues} />
+
+          <!-- SIMULADOR -->
+          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Simulador de Aporte</h2>
+              <div class="flex items-center gap-2">
+                ${saving && html`<${Spinner} size="w-3 h-3" />`}
+                ${!selicLoading && html`<span class="text-[9px] text-slate-600">Selic ${selic.toFixed(1)}% a.a.</span>`}
+              </div>
+            </div>
+
+            <${PerfilSelector} perfil=${perfil} onChange=${handlePerfilChange} />
+
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold select-none">R$</span>
+                <input
+                  type="number"
+                  value=${valor}
+                  onChange=${function(e) { setValor(e.target.value); }}
+                  onKeyDown=${handleKeyDown}
+                  placeholder="0,00"
+                  min="0"
+                  step="any"
+                  class="w-full pl-10 pr-3 py-3 bg-[#0d1117] rounded-xl border border-slate-700 focus:outline-none focus:border-[#34d399] text-slate-100 placeholder-slate-600 text-sm transition-colors"
+                />
+              </div>
+              <button onClick=${calcular} class="sim-btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 px-5 rounded-xl font-bold text-sm">
+                Simular
+              </button>
+            </div>
+
+            ${resultado !== null && html`
+              <${ResultadoAlocacao}
+                resultado=${resultado}
+                perfil=${perfil}
+                selic=${selic}
+                selicIsLive=${selicIsLive}
+                selicLoading=${selicLoading}
+                showValues=${showValues}
+              />`}
+          </section>
+
+          <!-- OPORTUNIDADES DINÂMICAS POR PERFIL -->
+          <section class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">🔥 Top 3 Oportunidades</h2>
+              <span class="text-[9px] text-slate-600">Clique para saber mais</span>
+            </div>
+            ${PERFIS[perfil].oportunidades.map(function(op) {
+              return html`
+                <${OportunidadeCard}
+                  key=${op.id}
+                  op=${op}
+                  isOpen=${openCard === op.id}
+                  onToggle=${function() { toggleCard(op.id); }}
+                />`;
+            })}
+          </section>
+
+          <!-- FOOTER -->
+          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-1">
+            <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
+              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro.
+            </p>
+            <p class="text-[8px] text-slate-700">© 2025 Minhas Moedinhas · Feito com 💚 no Brasil</p>
+          </footer>
+        </div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🏗️  ROOT — orquestra sessão e decide qual tela renderizar
+    // ═══════════════════════════════════════════════════════════════════════════
+    function Root() {
+      // null = ainda verificando | false = sem sessão | object = usuário logado
+      var [user,      setUser]      = useState(null);
+      var [authReady, setAuthReady] = useState(false);
+
+      useEffect(function() {
+        // 1) Lê sessão existente (ex.: refresh da página ou retorno do OAuth)
+        sbClient.auth.getSession().then(function(res) {
+          setUser(res.data?.session?.user ?? false);
+          setAuthReady(true);
+        });
+
+        // 2) Escuta mudanças em tempo real
+        var sub = sbClient.auth.onAuthStateChange(function(_event, session) {
+          setUser(session?.user ?? false);
+          setAuthReady(true);
+        });
+
+        // Cleanup correto para supabase-js v2
+        return function() {
+          var subscription = sub?.data?.subscription ?? sub;
+          if (subscription && typeof subscription.unsubscribe === 'function') {
+            subscription.unsubscribe();
+          }
+        };
+      }, []);
+
+      // Verificação inicial de sessão — mostra apenas spinner
+      if (!authReady) {
+        return html`
+          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
+            <${Spinner} size="w-8 h-8" />
+            <p class="text-xs text-slate-500">Carregando…</p>
+          </div>`;
+      }
+
+      if (!user) return html`<${LoginScreen} />`;
+      return html`<${MainApp} user=${user} />`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🚀  INICIALIZAÇÃO DO REACT
+    // ═══════════════════════════════════════════════════════════════════════════
+    ReactDOM.createRoot(document.getElementById('root')).render(html`<${Root} />`);
+  </script>
+</body>
+</html>
