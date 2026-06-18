@@ -13,32 +13,32 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
 
-    /* ── Gráfico ── */
+    /* Gráfico */
     .bar-animate { transition: height 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
     .bar-proj    { background: linear-gradient(to top, #818cf8cc, #a5b4fcee); }
     .bar-hist    { background: #34d39980; }
     .bar-hist:hover { background: #34d399; }
 
-    /* ── Acordeão ── */
+    /* Acordeão */
     .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1); }
     .accordion-body.open { max-height: 520px; }
 
-    /* ── Selic pulse ── */
+    /* Selic pulse */
     .pulse-dot { animation: pulse-ring 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite; }
     @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
-    /* ── Progress bar ── */
+    /* Progress bar */
     .progress-fill { transition: width 0.7s cubic-bezier(0.16,1,0.3,1); }
 
-    /* ── Card glow ── */
+    /* Card hover glow */
     .card-glow:hover { box-shadow: 0 0 0 1px #34d39933, 0 8px 28px #34d39914; }
 
-    /* ── Inputs numéricos sem seta ── */
+    /* Número sem seta */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
     input[type=number] { -moz-appearance: textfield; }
 
-    /* ── Botões micro-interação ── */
+    /* Micro-interações */
     .profile-btn { transition: all 0.18s ease; }
     .profile-btn:hover { transform: translateY(-1px); }
     .profile-btn:active { transform: scale(0.96); }
@@ -49,15 +49,22 @@
 
     .tab-btn { transition: all 0.2s ease; }
 
+    /* Auth */
+    .auth-input { transition: border-color 0.2s, box-shadow 0.2s; }
+    .auth-input:focus { outline: none; border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
+
     .auth-btn { transition: all 0.18s ease; }
     .auth-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px #34d39945; }
     .auth-btn:active { transform: scale(0.97); }
 
+    .google-btn { transition: all 0.18s ease; }
+    .google-btn:hover { transform: translateY(-1px); border-color: #475569; background: #1e293b; }
+    .google-btn:active { transform: scale(0.97); }
+
     .signout-btn { transition: all 0.18s ease; }
     .signout-btn:hover { background: rgba(30,41,59,0.8); color: #94a3b8; }
-    .signout-btn:active { transform: scale(0.95); }
 
-    /* ── Tooltip das barras ── */
+    /* Tooltip gráfico */
     .bar-tooltip {
       position: absolute;
       bottom: calc(100% + 6px);
@@ -78,17 +85,13 @@
     }
     .bar-wrap:hover .bar-tooltip { opacity: 1; }
 
-    /* ── Spinner ── */
+    /* Spinner */
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 0.8s linear infinite; }
 
-    /* ── Fade in tela ── */
+    /* Fade in */
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     .fade-up { animation: fadeUp 0.3s ease forwards; }
-
-    /* ── Auth input focus ring ── */
-    .auth-input { transition: border-color 0.2s, box-shadow 0.2s; }
-    .auth-input:focus { outline: none; border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
   </style>
 </head>
 <body class="bg-[#0d1117] text-slate-100 antialiased">
@@ -99,21 +102,20 @@
     const html = htm.bind(React.createElement);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // ☁️  SUPABASE — substitua pelas suas credenciais reais do projeto
+    // ☁️  SUPABASE — substitua pelas suas credenciais
     // ═══════════════════════════════════════════════════════════════════════════
     const SUPABASE_URL      = 'SUA_URL_AQUI';
     const SUPABASE_ANON_KEY = 'SUA_CHAVE_AQUI';
 
-    // A CDN do supabase-js@2 expõe o cliente em window.supabase
+    // A CDN supabase-js@2 expõe o factory em window.supabase
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Flag: quando as credenciais forem as padrão, opera em modo localStorage
+    // Modo local: quando as credenciais ainda são placeholder, o app usa
+    // localStorage e desabilita o Google OAuth (que precisa de credenciais reais).
     const MODO_LOCAL = SUPABASE_URL === 'SUA_URL_AQUI';
 
     // ═══════════════════════════════════════════════════════════════════════════
     // 🗄️  CAMADA DE DADOS — Repository Pattern
-    //     • MODO_LOCAL=true  → localStorage (dev sem Supabase)
-    //     • MODO_LOCAL=false → Supabase (produção)
     //     Tabela esperada: portfolios (user_id UUID PK, aporte NUMERIC, perfil TEXT)
     // ═══════════════════════════════════════════════════════════════════════════
     async function dbLoad(userId) {
@@ -144,6 +146,20 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // 🔑  TRADUÇÃO DE ERROS DE AUTH
+    // ═══════════════════════════════════════════════════════════════════════════
+    function traduzirErro(msg) {
+      if (!msg) return 'Ocorreu um erro. Tente novamente.';
+      if (msg.includes('Invalid login credentials'))  return 'E-mail ou senha incorretos.';
+      if (msg.includes('Email not confirmed'))         return 'Confirme seu e-mail antes de entrar.';
+      if (msg.includes('User already registered'))     return 'Este e-mail já possui cadastro.';
+      if (msg.includes('Password should be'))          return 'A senha deve ter pelo menos 6 caracteres.';
+      if (msg.includes('rate limit'))                  return 'Muitas tentativas. Aguarde alguns minutos.';
+      if (msg.includes('provider is not enabled'))     return 'Login com Google não está configurado ainda.';
+      return msg;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // 📊  DADOS ESTÁTICOS
     // ═══════════════════════════════════════════════════════════════════════════
     const SELIC_FALLBACK = 10.5;
@@ -161,25 +177,25 @@
       conservador: {
         label: 'Conservador', emoji: '🛡️',
         alocacao: [
-          { nome: 'Renda Fixa',         pct: 0.70, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
-          { nome: 'FIIs (Imobiliário)',  pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações',              pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+          { nome: 'Renda Fixa',        pct: 0.70, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)', pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',             pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
         ],
       },
       moderado: {
         label: 'Moderado', emoji: '⚖️',
         alocacao: [
-          { nome: 'Renda Fixa',         pct: 0.50, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
-          { nome: 'FIIs (Imobiliário)',  pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações',              pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+          { nome: 'Renda Fixa',        pct: 0.50, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)', pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',             pct: 0.10, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
         ],
       },
       arrojado: {
         label: 'Arrojado', emoji: '🚀',
         alocacao: [
-          { nome: 'Renda Fixa',         pct: 0.20, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
-          { nome: 'FIIs (Imobiliário)',  pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações',              pct: 0.50, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
+          { nome: 'Renda Fixa',        pct: 0.20, cor: 'text-indigo-400',  bg: 'bg-indigo-400'  },
+          { nome: 'FIIs (Imobiliário)', pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações',             pct: 0.50, cor: 'text-amber-400',   bg: 'bg-amber-400'   },
         ],
       },
     };
@@ -209,7 +225,7 @@
     ];
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 🔧  UTILIDADES
+    // 🔧  UTILITÁRIOS
     // ═══════════════════════════════════════════════════════════════════════════
     function fmtBRL(v) {
       return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -222,7 +238,7 @@
       const taxaMensal  = Math.pow(1 + selicAnual / 100, 1 / 12) - 1;
       const fiiMensal   = 0.006;
       const acoesMensal = 0.010;
-      const meses       = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
+      const meses = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
       let rf = aporte * rfPct, fii = aporte * fiiPct, acoes = aporte * acoesPct;
       return meses.map(function(mes, i) {
         if (i > 0) { rf *= 1 + taxaMensal; fii *= 1 + fiiMensal; acoes *= 1 + acoesMensal; }
@@ -230,39 +246,30 @@
       });
     }
 
-    function traduzirErroAuth(msg) {
-      if (!msg) return 'Ocorreu um erro. Tente novamente.';
-      if (msg.includes('Invalid login credentials'))  return 'E-mail ou senha incorretos.';
-      if (msg.includes('Email not confirmed'))         return 'Confirme seu e-mail antes de entrar.';
-      if (msg.includes('User already registered'))     return 'Este e-mail já possui cadastro.';
-      if (msg.includes('Password should be'))          return 'A senha deve ter pelo menos 6 caracteres.';
-      if (msg.includes('rate limit'))                  return 'Muitas tentativas. Aguarde alguns minutos.';
-      return msg;
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
     // 🧩  COMPONENTES ATÔMICOS
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // ── Spinner SVG ───────────────────────────────────────────────────────────
+    // ── Spinner ───────────────────────────────────────────────────────────────
     function Spinner({ size }) {
       const s = size || 'w-5 h-5';
       return html`
-        <svg class=${'spin ' + s} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg class=${'spin ' + s} viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" stroke="#1e293b" stroke-width="3"/>
           <path d="M12 2a10 10 0 0 1 10 10" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
         </svg>`;
     }
 
-    // ── Logo SVG (substitui emoji 🪙) ─────────────────────────────────────────
+    // ── Logo SVG (evita quebra de emoji entre browsers) ───────────────────────
     function CoinLogo({ size }) {
       const s = size || 28;
       return html`
-        <svg width=${s} height=${s} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <svg width=${s} height=${s} viewBox="0 0 28 28" fill="none" aria-hidden="true">
           <circle cx="14" cy="14" r="14" fill="#34d399" fill-opacity="0.12"/>
           <circle cx="14" cy="14" r="10" fill="#34d399" fill-opacity="0.22"/>
           <circle cx="14" cy="14" r="7"  fill="#34d399" fill-opacity="0.18"/>
-          <text x="14" y="18.5" text-anchor="middle" font-size="11" font-family="Inter,system-ui,sans-serif" font-weight="800" fill="#34d399">$</text>
+          <text x="14" y="18.5" text-anchor="middle" font-size="11"
+            font-family="Inter,system-ui,sans-serif" font-weight="800" fill="#34d399">$</text>
         </svg>`;
     }
 
@@ -275,9 +282,9 @@
             Buscando Selic…
           </div>`;
       }
-      const dotCls  = isLive ? 'bg-emerald-400' : 'bg-amber-400';
-      const txtCls  = isLive ? 'text-emerald-400' : 'text-amber-400';
-      const label   = isLive ? 'Selic ao vivo' : 'Média de mercado';
+      const dotCls = isLive ? 'bg-emerald-400' : 'bg-amber-400';
+      const txtCls = isLive ? 'text-emerald-400' : 'text-amber-400';
+      const label  = isLive ? 'Selic ao vivo'    : 'Média de mercado';
       return html`
         <div class="flex items-center gap-1.5 text-[10px] bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">
           <span class=${'w-1.5 h-1.5 rounded-full pulse-dot inline-block ' + dotCls}></span>
@@ -291,14 +298,14 @@
       return html`
         <div class="flex gap-1.5 bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800">
           ${['conservador','moderado','arrojado'].map(function(key) {
-            const p      = PERFIS[key];
-            const ativo  = perfil === key;
-            const base   = 'profile-btn flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-[10px] font-semibold cursor-pointer border ';
-            const estado = ativo
+            const p     = PERFIS[key];
+            const ativo = perfil === key;
+            const base  = 'profile-btn flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-[10px] font-semibold cursor-pointer border ';
+            const cls   = ativo
               ? 'bg-[#1a2233] border-[#34d399]/50 text-[#34d399] shadow-sm'
               : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300';
             return html`
-              <button key=${key} class=${base + estado} onClick=${function() { onChange(key); }}>
+              <button key=${key} class=${base + cls} onClick=${function() { onChange(key); }}>
                 <span class="text-base leading-none mb-0.5">${p.emoji}</span>
                 ${p.label}
               </button>`;
@@ -310,17 +317,17 @@
     function GraficoCard({ resultado, perfil, selic }) {
       const [modo, setModo] = useState('historico');
 
-      const temAporte  = resultado !== null && resultado > 0;
-      const projecao   = temAporte ? gerarProjecao(resultado, PERFIS[perfil], selic) : [];
-      const dados      = modo === 'historico' ? HISTORICO : projecao;
-      const maxVal     = dados.length > 0 ? Math.max(...dados.map(function(d) { return d.valor; })) : 1;
-      const modoHist   = modo === 'historico';
+      const temAporte = resultado !== null && resultado > 0;
+      const projecao  = temAporte ? gerarProjecao(resultado, PERFIS[perfil], selic) : [];
+      const dados     = modo === 'historico' ? HISTORICO : projecao;
+      const maxVal    = dados.length > 0 ? Math.max(...dados.map(function(d) { return d.valor; })) : 1;
+      const modoHist  = modo === 'historico';
 
-      const tabBase  = 'tab-btn px-3 py-1 rounded-lg text-[10px] font-semibold border ';
-      const tabHCls  = tabBase + (modoHist
+      const tabBase = 'tab-btn px-3 py-1 rounded-lg text-[10px] font-semibold border ';
+      const tabHCls = tabBase + (modoHist
         ? 'bg-[#34d399]/15 border-[#34d399]/40 text-[#34d399]'
         : 'bg-transparent border-transparent text-slate-500 hover:text-slate-400');
-      const tabPCls  = tabBase + (!modoHist
+      const tabPCls = tabBase + (!modoHist
         ? 'bg-indigo-400/15 border-indigo-400/40 text-indigo-300'
         : 'bg-transparent border-transparent text-slate-500 hover:text-slate-400');
 
@@ -347,14 +354,14 @@
             : html`
                 <div class="flex items-end justify-between h-28 gap-1 px-0.5">
                   ${dados.map(function(item) {
-                    const pct      = (item.valor / maxVal) * 100;
-                    const barCls   = modoHist
+                    const pct    = (item.valor / maxVal) * 100;
+                    const barCls = modoHist
                       ? 'bar-animate bar-hist w-full rounded-t-sm cursor-default'
                       : 'bar-animate bar-proj w-full rounded-t-sm cursor-default';
-                    const valFmt   = item.valor >= 1000
+                    const valFmt = item.valor >= 1000
                       ? 'R$' + (item.valor / 1000).toFixed(1) + 'k'
                       : 'R$' + item.valor.toFixed(0);
-                    const hSty = { height: pct + '%', minHeight: '6px' };
+                    const hSty   = { height: pct + '%', minHeight: '6px' };
                     return html`
                       <div key=${item.mes} class="bar-wrap flex flex-col items-center w-full relative">
                         <span class="bar-tooltip">${valFmt}</span>
@@ -369,11 +376,15 @@
             ${modoHist
               ? html`
                   <span class="text-[10px] text-slate-500">Total acumulado</span>
-                  <span class="text-sm font-bold text-[#34d399]">R$ ${HISTORICO[HISTORICO.length-1].valor.toLocaleString('pt-BR')}</span>`
+                  <span class="text-sm font-bold text-[#34d399]">
+                    R$ ${HISTORICO[HISTORICO.length-1].valor.toLocaleString('pt-BR')}
+                  </span>`
               : temAporte
                 ? html`
                     <span class="text-[10px] text-slate-500">Projeção em 12 meses</span>
-                    <span class="text-sm font-bold text-indigo-300">R$ ${fmtBRL(projecao[projecao.length-1].valor)}</span>`
+                    <span class="text-sm font-bold text-indigo-300">
+                      R$ ${fmtBRL(projecao[projecao.length-1].valor)}
+                    </span>`
                 : html`<span></span>`
             }
           </div>
@@ -425,7 +436,7 @@
         </div>`;
     }
 
-    // ── Oportunidade Card (Acordeão) ──────────────────────────────────────────
+    // ── Card Oportunidade (Acordeão) ──────────────────────────────────────────
     function OportunidadeCard({ op, isOpen, onToggle }) {
       const bdrCls  = isOpen ? 'border-[#34d399]/40' : 'border-slate-800';
       const cardCls = 'bg-[#1a2233] rounded-2xl border transition-all duration-300 card-glow overflow-hidden ' + bdrCls;
@@ -439,7 +450,9 @@
               <span class="text-2xl leading-none">${op.emoji}</span>
               <div>
                 <p class="text-sm font-bold text-slate-100">${op.titulo}</p>
-                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block ' + op.tagColor}>${op.subtitulo}</span>
+                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block ' + op.tagColor}>
+                  ${op.subtitulo}
+                </span>
               </div>
             </div>
             <svg class=${svgCls} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -485,36 +498,48 @@
 
       function limpar() { setErro(''); setSucesso(''); }
 
+      // ── Login com e-mail + senha ──────────────────────────────────────────
       async function handleEntrar() {
         if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
         setLoading(true); limpar();
-        if (MODO_LOCAL) {
-          // Em modo local, simula login criando um user fictício via onAuthStateChange
-          // Isso não vai funcionar sem Supabase real — avisa o usuário
-          setErro('Configure SUPABASE_URL e SUPABASE_ANON_KEY para usar autenticação.');
-          setLoading(false); return;
-        }
         const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-        if (error) setErro(traduzirErroAuth(error.message));
-        setLoading(false);
+        // Só para o loading se houver erro — em caso de sucesso, onAuthStateChange
+        // vai trocar de tela e o componente desmonta, então não há setState.
+        if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
       }
 
+      // ── Cadastro com e-mail + senha ───────────────────────────────────────
       async function handleCadastrar() {
         if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
-        if (MODO_LOCAL) { setErro('Configure as credenciais do Supabase para criar conta.'); return; }
         setLoading(true); limpar();
         const { error } = await sbClient.auth.signUp({ email, password: senha });
-        if (error) setErro(traduzirErroAuth(error.message));
-        else setSucesso('Conta criada! Verifique seu e-mail para confirmar o cadastro.');
+        if (error) { setErro(traduzirErro(error.message)); }
+        else { setSucesso('Conta criada! Verifique seu e-mail para confirmar o cadastro.'); }
         setLoading(false);
       }
 
-      function onKey(e) { if (e.key === 'Enter') { modo === 'entrar' ? handleEntrar() : handleCadastrar(); } }
+      // ── Login com Google (OAuth) ──────────────────────────────────────────
+      // O botão só aparece quando as credenciais reais estão configuradas.
+      // Após o redirect do Google, onAuthStateChange cuida do resto.
+      async function handleGoogle() {
+        setLoading(true); limpar();
+        const { error } = await sbClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin },
+        });
+        // signInWithOAuth redireciona a página, então o loading só para em erro.
+        if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
+      }
 
-      const isCad     = modo === 'cadastrar';
-      const tabBase   = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
-      const tabAtivo  = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
-      const tabInativ = tabBase + 'text-slate-500 hover:text-slate-300';
+      function onKey(e) {
+        if (e.key !== 'Enter') return;
+        if (modo === 'entrar') handleEntrar(); else handleCadastrar();
+      }
+
+      const isCad    = modo === 'cadastrar';
+      const tabBase  = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
+      const tabAtivo = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
+      const tabOff   = tabBase + 'text-slate-500 hover:text-slate-300';
 
       return html`
         <div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
@@ -531,13 +556,17 @@
               </div>
             </div>
 
-            <!-- Card formulário -->
+            <!-- Card -->
             <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
 
-              <!-- Abas -->
+              <!-- Abas Entrar / Criar Conta -->
               <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
-                <button class=${!isCad ? tabAtivo : tabInativ} onClick=${function() { setModo('entrar'); limpar(); }}>Entrar</button>
-                <button class=${isCad  ? tabAtivo : tabInativ} onClick=${function() { setModo('cadastrar'); limpar(); }}>Criar Conta</button>
+                <button class=${!isCad ? tabAtivo : tabOff} onClick=${function() { setModo('entrar'); limpar(); }}>
+                  Entrar
+                </button>
+                <button class=${isCad ? tabAtivo : tabOff} onClick=${function() { setModo('cadastrar'); limpar(); }}>
+                  Criar Conta
+                </button>
               </div>
 
               <!-- Campos -->
@@ -569,7 +598,7 @@
                 </div>
               </div>
 
-              <!-- Erro -->
+              <!-- Mensagem de erro -->
               ${erro && html`
                 <div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3">
                   <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -578,7 +607,7 @@
                   <p class="text-xs text-red-300">${erro}</p>
                 </div>`}
 
-              <!-- Sucesso (cadastro) -->
+              <!-- Mensagem de sucesso (cadastro) -->
               ${sucesso && html`
                 <div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3">
                   <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -587,7 +616,7 @@
                   <p class="text-xs text-emerald-300">${sucesso}</p>
                 </div>`}
 
-              <!-- CTA principal -->
+              <!-- Botão principal (Entrar / Criar conta) -->
               <button
                 onClick=${isCad ? handleCadastrar : handleEntrar}
                 disabled=${loading}
@@ -599,10 +628,33 @@
                 }
               </button>
 
+              <!-- Separador + Google OAuth (apenas com credenciais reais) -->
+              ${!MODO_LOCAL && html`
+                <div class="flex items-center gap-3">
+                  <div class="h-px flex-1 bg-slate-800"></div>
+                  <span class="text-[10px] text-slate-600 font-medium">ou continue com</span>
+                  <div class="h-px flex-1 bg-slate-800"></div>
+                </div>
+                <button
+                  onClick=${handleGoogle}
+                  disabled=${loading}
+                  class="google-btn w-full flex items-center justify-center gap-2.5 bg-[#0d1117] border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Continuar com Google
+                </button>`}
+
+              <!-- Aviso modo local -->
               ${MODO_LOCAL && html`
-                <p class="text-[9px] text-amber-600/80 text-center leading-relaxed">
-                  ⚠️ Modo local ativo. Configure as credenciais do Supabase para habilitar login.
+                <p class="text-[9px] text-amber-600/80 text-center leading-relaxed pt-1">
+                  ⚠️ Modo local ativo (localStorage). Configure SUPABASE_URL e SUPABASE_ANON_KEY para ativar nuvem e login com Google.
                 </p>`}
+
             </div>
 
             <p class="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
@@ -614,7 +666,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 🏠  APP PRINCIPAL (usuário autenticado)
+    // 🏠  APP PRINCIPAL
     // ═══════════════════════════════════════════════════════════════════════════
     function MainApp({ user }) {
       const [valor,        setValor]        = useState('');
@@ -642,26 +694,34 @@
 
       // ── Selic ao vivo ─────────────────────────────────────────────────────
       useEffect(function() {
-        const ctrl = new AbortController();
-        const tid  = setTimeout(function() { ctrl.abort(); }, 5000);
+        var ctrl = new AbortController();
+        var tid  = setTimeout(function() { ctrl.abort(); }, 5000);
         (async function() {
           try {
-            const res  = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json', { signal: ctrl.signal });
+            var res  = await fetch(
+              'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json',
+              { signal: ctrl.signal }
+            );
             if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            const d = parseFloat(json[0]?.valor);
+            var json = await res.json();
+            var d = parseFloat(json[0]?.valor);
             if (isNaN(d)) throw new Error('inválido');
             setSelic(parseFloat(((Math.pow(1 + d / 100, 252) - 1) * 100).toFixed(2)));
             setSelicIsLive(true);
-          } catch (_) { setSelic(SELIC_FALLBACK); setSelicIsLive(false); }
-          finally { clearTimeout(tid); setSelicLoading(false); }
+          } catch (_) {
+            setSelic(SELIC_FALLBACK);
+            setSelicIsLive(false);
+          } finally {
+            clearTimeout(tid);
+            setSelicLoading(false);
+          }
         })();
         return function() { ctrl.abort(); clearTimeout(tid); };
       }, []);
 
       // ── Simular ───────────────────────────────────────────────────────────
-      const calcular = useCallback(async function() {
-        const v = parseFloat(valor);
+      var calcular = useCallback(async function() {
+        var v = parseFloat(valor);
         if (isNaN(v) || v <= 0) return;
         setResultado(v);
         setSaving(true);
@@ -672,7 +732,7 @@
       // ── Mudar perfil ──────────────────────────────────────────────────────
       async function handlePerfilChange(key) {
         setPerfil(key);
-        const v = parseFloat(valor);
+        var v = parseFloat(valor);
         setSaving(true);
         await dbSave(user.id, isNaN(v) ? null : v, key);
         setSaving(false);
@@ -680,9 +740,8 @@
 
       function handleKeyDown(e) { if (e.key === 'Enter') calcular(); }
       function toggleCard(id)   { setOpenCard(function(p) { return p === id ? null : id; }); }
-      async function handleSignOut() { await sbClient.auth.signOut(); }
 
-      // Loading inicial do DB
+      // Loading do DB
       if (!dbReady) {
         return html`
           <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
@@ -691,8 +750,7 @@
           </div>`;
       }
 
-      // Exibir e-mail abreviado no header
-      const emailCurto = user.email ? user.email.split('@')[0] : '';
+      var emailCurto = user.email ? user.email.split('@')[0] : 'investidor';
 
       return html`
         <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10 fade-up">
@@ -709,7 +767,7 @@
             <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
               <${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} />
               <button
-                onClick=${handleSignOut}
+                onClick=${function() { sbClient.auth.signOut(); }}
                 class="signout-btn flex items-center gap-1 text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/80"
               >
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -792,34 +850,40 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 🏗️  ROOT — orquestra sessão Supabase e decide qual tela renderizar
+    // 🏗️  ROOT — orquestra sessão e decide qual tela renderizar
     // ═══════════════════════════════════════════════════════════════════════════
     function Root() {
-      // null = verificando | false = não logado | object = user logado
-      const [user,        setUser]        = useState(null);
-      const [authReady,   setAuthReady]   = useState(false);
+      // null = ainda verificando | false = sem sessão | object = usuário logado
+      var [user,      setUser]      = useState(null);
+      var [authReady, setAuthReady] = useState(false);
 
       useEffect(function() {
-        // 1) Lê sessão existente (ex: reload da página)
+        // 1) Lê sessão existente (ex.: refresh da página ou retorno do OAuth)
         sbClient.auth.getSession().then(function(res) {
           setUser(res.data?.session?.user ?? false);
           setAuthReady(true);
         });
 
-        // 2) Escuta mudanças em tempo real (sign-in, sign-out, token refresh)
-        const sub = sbClient.auth.onAuthStateChange(function(_event, session) {
+        // 2) Escuta mudanças em tempo real:
+        //    - SIGNED_IN  → usuário logou (e-mail/senha ou OAuth redirect)
+        //    - SIGNED_OUT → usuário clicou em "Sair"
+        //    - TOKEN_REFRESHED → sessão renovada silenciosamente
+        var sub = sbClient.auth.onAuthStateChange(function(_event, session) {
           setUser(session?.user ?? false);
           setAuthReady(true);
         });
 
+        // Cleanup correto para supabase-js v2
         // onAuthStateChange retorna { data: { subscription } }
         return function() {
-          var s = sub.data && sub.data.subscription ? sub.data.subscription : sub;
-          if (s && typeof s.unsubscribe === 'function') s.unsubscribe();
+          var subscription = sub?.data?.subscription ?? sub;
+          if (subscription && typeof subscription.unsubscribe === 'function') {
+            subscription.unsubscribe();
+          }
         };
       }, []);
 
-      // Verificação inicial de sessão
+      // Verificação inicial de sessão — mostra apenas spinner
       if (!authReady) {
         return html`
           <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
