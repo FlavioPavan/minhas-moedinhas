@@ -103,6 +103,39 @@
     .privacy-blur-hover:hover .privacy-blur {
       filter: blur(3px);
     }
+
+    /* Modal overlay */
+    .modal-overlay {
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(8px);
+      animation: fadeUp 0.3s ease forwards;
+    }
+    .modal-card {
+      animation: fadeUp 0.4s ease forwards;
+    }
+
+    /* Banner monetização */
+    .banner-glow {
+      background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(129, 140, 248, 0.12));
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      transition: all 0.3s ease;
+    }
+    .banner-glow:hover {
+      border-color: rgba(52, 211, 153, 0.5);
+      box-shadow: 0 0 24px rgba(52, 211, 153, 0.08);
+    }
+
+    /* Botão WhatsApp */
+    .whatsapp-btn {
+      transition: all 0.18s ease;
+    }
+    .whatsapp-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(37, 211, 102, 0.25);
+    }
+    .whatsapp-btn:active {
+      transform: scale(0.97);
+    }
   </style>
 </head>
 <body class="bg-[#0d1117] text-slate-100 antialiased">
@@ -617,6 +650,107 @@
         </div>`;
     }
 
+    // ── Onboarding Modal ──────────────────────────────────────────────────────
+    function OnboardingModal({ onComplete }) {
+      const [step, setStep] = useState(1);
+
+      function nextStep() {
+        if (step === 1) {
+          setStep(2);
+        } else {
+          onComplete();
+        }
+      }
+
+      return html`
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
+          <div class="bg-[#1a2233] rounded-2xl border border-slate-700/60 shadow-2xl max-w-sm w-full p-6 modal-card space-y-5">
+            ${step === 1 ? html`
+              <div class="text-center space-y-3">
+                <div class="flex justify-center text-4xl">💡</div>
+                <h2 class="text-xl font-extrabold text-[#34d399]">O que é o Minhas Moedinhas?</h2>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                  Um aplicativo simples e gratuito que te ajuda a <strong class="text-[#34d399]">multiplicar seu dinheiro</strong> sem complicações.
+                  Aqui, <strong class="text-slate-100">cada R$ 5,00 poupado importa</strong> — porque todo começo é um passo gigante para sua liberdade financeira.
+                </p>
+                <div class="flex justify-center pt-2">
+                  <button
+                    onClick=${nextStep}
+                    class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm transition-all"
+                  >
+                    Entendi! →
+                  </button>
+                </div>
+              </div>
+            ` : html`
+              <div class="text-center space-y-3">
+                <div class="flex justify-center text-4xl">🚀</div>
+                <h2 class="text-xl font-extrabold text-[#34d399]">Como funciona?</h2>
+                <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
+                  <p>
+                    <span class="text-[#34d399] font-bold">1.</span> Digite quanto você pode guardar por mês.
+                  </p>
+                  <p>
+                    <span class="text-[#34d399] font-bold">2.</span> Escolha seu perfil de investidor (ou deixe a gente sugerir).
+                  </p>
+                  <p>
+                    <span class="text-[#34d399] font-bold">3.</span> Veja como seu dinheiro pode crescer e receba as melhores indicações.
+                  </p>
+                </div>
+                <div class="flex justify-center pt-2">
+                  <button
+                    onClick=${nextStep}
+                    class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm transition-all"
+                  >
+                    Entrar no Painel e Começar
+                  </button>
+                </div>
+              </div>
+            `}
+          </div>
+        </div>`;
+    }
+
+    // ── Banner de Monetização ─────────────────────────────────────────────────
+    function MonetizationBanner() {
+      return html`
+        <div class="banner-glow rounded-2xl p-4 text-center space-y-1.5">
+          <p class="text-xs text-slate-200 font-medium">
+            🚀 Quer multiplicar suas moedas de verdade?
+          </p>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Abra sua conta gratuita na corretora parceira através do nosso link e comece com <strong class="text-[#34d399]">taxa zero</strong>!
+          </p>
+          <a
+            href="https://www.xpi.com.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block mt-1 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-[10px] font-bold py-1.5 px-5 rounded-full transition-colors"
+          >
+            Conhecer agora
+          </a>
+        </div>`;
+    }
+
+    // ── Botão WhatsApp ────────────────────────────────────────────────────────
+    function WhatsAppButton() {
+      const url = encodeURIComponent(
+        'Descobri esse app gratuito que ajuda a planejar investimentos e poupar dinheiro de um jeito muito simples! Dá uma olhada: https://minhas-moedinhas.vercel.app/'
+      );
+      return html`
+        <a
+          href=${'https://api.whatsapp.com/send?text=' + url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="whatsapp-btn flex items-center gap-1.5 text-xs text-slate-300 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 rounded-full px-3 py-1.5 transition-all"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-[#25D366]">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Ajudar um amigo a poupar
+        </a>`;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // 🔐  TELA DE LOGIN
     // ═══════════════════════════════════════════════════════════════════════════
@@ -788,7 +922,7 @@
     // ═══════════════════════════════════════════════════════════════════════════
     // 🏠  APP PRINCIPAL
     // ═══════════════════════════════════════════════════════════════════════════
-    function MainApp({ user }) {
+    function MainApp({ user, onboardingSeen, setOnboardingSeen }) {
       const [valor,        setValor]        = useState('');
       const [resultado,    setResultado]    = useState(null);
       const [perfil,       setPerfil]       = useState('moderado');
@@ -958,6 +1092,9 @@
               />`}
           </section>
 
+          <!-- BANNER DE MONETIZAÇÃO -->
+          <${MonetizationBanner} />
+
           <!-- OPORTUNIDADES DINÂMICAS POR PERFIL -->
           <section class="space-y-3">
             <div class="flex items-center justify-between px-1">
@@ -976,7 +1113,10 @@
           </section>
 
           <!-- FOOTER -->
-          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-1">
+          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-2">
+            <div class="flex justify-center">
+              <${WhatsAppButton} />
+            </div>
             <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
               <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro.
             </p>
@@ -986,15 +1126,19 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // 🏗️  ROOT — orquestra sessão e decide qual tela renderizar
+    // 🏗️  ROOT — orquestra sessão, onboarding e decide qual tela renderizar
     // ═══════════════════════════════════════════════════════════════════════════
     function Root() {
-      // null = ainda verificando | false = sem sessão | object = usuário logado
       var [user,      setUser]      = useState(null);
       var [authReady, setAuthReady] = useState(false);
+      var [onboardingSeen, setOnboardingSeen] = useState(false);
 
       useEffect(function() {
-        // 1) Lê sessão existente (ex.: refresh da página ou retorno do OAuth)
+        // Verifica se o onboarding já foi visto
+        const seen = localStorage.getItem('onboarding_visto') === 'true';
+        setOnboardingSeen(seen);
+
+        // 1) Lê sessão existente
         sbClient.auth.getSession().then(function(res) {
           setUser(res.data?.session?.user ?? false);
           setAuthReady(true);
@@ -1006,7 +1150,6 @@
           setAuthReady(true);
         });
 
-        // Cleanup correto para supabase-js v2
         return function() {
           var subscription = sub?.data?.subscription ?? sub;
           if (subscription && typeof subscription.unsubscribe === 'function') {
@@ -1015,7 +1158,11 @@
         };
       }, []);
 
-      // Verificação inicial de sessão — mostra apenas spinner
+      function handleOnboardingComplete() {
+        localStorage.setItem('onboarding_visto', 'true');
+        setOnboardingSeen(true);
+      }
+
       if (!authReady) {
         return html`
           <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
@@ -1025,7 +1172,12 @@
       }
 
       if (!user) return html`<${LoginScreen} />`;
-      return html`<${MainApp} user=${user} />`;
+
+      // Se o usuário ainda não viu o onboarding, mostramos o modal sobreposto ao MainApp
+      return html`
+        <${MainApp} user=${user} onboardingSeen=${onboardingSeen} setOnboardingSeen=${setOnboardingSeen} />
+        ${!onboardingSeen && html`<${OnboardingModal} onComplete=${handleOnboardingComplete} />`}
+      `;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
