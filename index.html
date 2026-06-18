@@ -83,7 +83,11 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin></script>
+  <!-- Supabase: jsdelivr serve um bundle UMD standalone genuíno (sem imports
+       ES6 internos). O build do unpkg para esta mesma versão estava causando
+       "Cannot use import statement outside a module" — bug de empacotamento
+       específico do unpkg para este pacote, não do nosso código. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin></script>
 </head>
 
 <body>
@@ -96,6 +100,29 @@
   </noscript>
 
   <script>
+    /* ════════════════════════════════════════════════════════════════════
+       CAPTURA GLOBAL DE ERROS
+       Mostra qualquer erro de runtime/sintaxe diretamente na tela, para não
+       depender de abrir o DevTools a cada teste. Fica visível só se o React
+       não conseguir montar (ou seja, não interfere depois que tudo funciona,
+       porque o React substitui o conteúdo de #root ao montar com sucesso).
+       ════════════════════════════════════════════════════════════════════ */
+    window.addEventListener('error', function (e) {
+      const root = document.getElementById('root');
+      if (!root) return;
+      const jaTemApp = root.querySelector('[data-app-mounted]');
+      if (jaTemApp) return; // app já rodando, não sobrescreve
+      root.innerHTML = `
+        <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
+                    background:#0d1117;color:#fca5a5;font-family:monospace;padding:2rem;text-align:left;">
+          <div style="max-width:640px;">
+            <h1 style="font-size:1rem;margin-bottom:0.75rem;color:#f87171;">⚠ Erro ao carregar a aplicação</h1>
+            <p style="color:#fca5a5;font-size:0.8rem;white-space:pre-wrap;background:#1a1010;padding:1rem;border-radius:8px;border:1px solid #7f1d1d;">${(e.message || 'Erro desconhecido')}${e.filename ? '\n\nArquivo: ' + e.filename + ':' + e.lineno : ''}</p>
+            <p style="color:#94a3b8;font-size:0.75rem;margin-top:0.75rem;">Abra o DevTools (F12) → Console para mais detalhes.</p>
+          </div>
+        </div>`;
+    });
+
     /* ════════════════════════════════════════════════════════════════════
        VERIFICAÇÃO DE INTEGRIDADE DOS GLOBAIS
        ════════════════════════════════════════════════════════════════════ */
@@ -544,7 +571,9 @@
     }
 
     /* ── Montagem na DOM — React 18 ──────────────────────────────────────── */
-    const root = ReactDOM.createRoot(document.getElementById('root'));
+    const rootEl = document.getElementById('root');
+    rootEl.setAttribute('data-app-mounted', 'true');
+    const root = ReactDOM.createRoot(rootEl);
     root.render(<App />);
   </script>
 </body>
