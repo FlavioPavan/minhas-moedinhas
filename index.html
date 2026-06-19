@@ -69,8 +69,9 @@
       await sbClient.from('portfolios').upsert({ user_id: userId, aporte, perfil }, { onConflict: 'user_id' });
     }
     async function carregarTransacoes(userId) {
-      const { data, error } = await sbClient.from('transacoes').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-      return error ? [] : (data || []);
+      const { data, error } = await sbClient.from('transacoes').select('*').eq('user_id', userId);
+      if (error) return [];
+      return data || [];
     }
     async function salvarTransacao(userId, descricao, valor, tipo) {
       await sbClient.from('transacoes').insert({ user_id: userId, descricao: descricao.trim(), valor: parseFloat(valor), tipo });
@@ -206,7 +207,7 @@
       </div></div>`;
     }
 
-    /* ════════ TELA DE LOGIN (CORRIGIDA) ════════ */
+    /* ════════ TELA DE LOGIN (CORRIGIDA SEM FRAGMENTOS) ════════ */
     function LoginScreen() {
       const [modo, setModo] = useState('entrar');
       const [nome, setNome] = useState(''), [whatsapp, setWhatsapp] = useState(''), [email, setEmail] = useState(''), [senha, setSenha] = useState('');
@@ -222,12 +223,25 @@
         <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
           <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1"><button class=${!isCad ? tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm' : tabBase + 'text-slate-500 hover:text-slate-300'} onClick=${() => { setModo('entrar'); limpar(); }}>Entrar</button><button class=${isCad ? tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm' : tabBase + 'text-slate-500 hover:text-slate-300'} onClick=${() => { setModo('cadastrar'); limpar(); }}>Criar Conta</button></div>
           <div class="space-y-3">
-            ${isCad ? html`
-              <div class="space-y-1.5 fade-up"><label class="text-[10px] text-slate-500 font-semibold uppercase">Nome Completo</label><input type="text" value=${nome} onChange=${e => { setNome(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="Seu nome completo" autocomplete="name" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
-              <div class="space-y-1.5 fade-up"><label class="text-[10px] text-slate-500 font-semibold uppercase">WhatsApp</label><input type="tel" value=${whatsapp} onChange=${e => { setWhatsapp(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="(11) 99999-9999" autocomplete="tel" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
-            ` : null}
-            <div class="space-y-1.5"><label class="text-[10px] text-slate-500 font-semibold uppercase">E-mail</label><input type="email" value=${email} onChange=${e => { setEmail(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="voce@email.com" autocomplete="email" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
-            <div class="space-y-1.5"><label class="text-[10px] text-slate-500 font-semibold uppercase">Senha</label><input type="password" value=${senha} onChange=${e => { setSenha(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="••••••••" autocomplete=${isCad ? 'new-password' : 'current-password'} class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" />${isCad ? html`<p class="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>` : null}</div>
+            <!-- Estrutura 100% estável: Sempre renderizamos os inputs, apenas alternamos a visibilidade -->
+            <div class=${'space-y-1.5 fade-up ' + (isCad ? '' : 'hidden')}>
+              <label class="text-[10px] text-slate-500 font-semibold uppercase">Nome Completo</label>
+              <input type="text" value=${nome} onChange=${e => { setNome(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="Seu nome completo" autocomplete="name" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" />
+            </div>
+            <div class=${'space-y-1.5 fade-up ' + (isCad ? '' : 'hidden')}>
+              <label class="text-[10px] text-slate-500 font-semibold uppercase">WhatsApp</label>
+              <input type="tel" value=${whatsapp} onChange=${e => { setWhatsapp(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="(11) 99999-9999" autocomplete="tel" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" />
+            </div>
+            
+            <div class="space-y-1.5">
+              <label class="text-[10px] text-slate-500 font-semibold uppercase">E-mail</label>
+              <input type="email" value=${email} onChange=${e => { setEmail(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="voce@email.com" autocomplete="email" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-[10px] text-slate-500 font-semibold uppercase">Senha</label>
+              <input type="password" value=${senha} onChange=${e => { setSenha(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="••••••••" autocomplete=${isCad ? 'new-password' : 'current-password'} class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" />
+              <p class=${'text-[9px] text-slate-600 mt-0.5 ' + (isCad ? '' : 'hidden')}>Mínimo de 6 caracteres.</p>
+            </div>
           </div>
           ${erro ? html`<div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3"><svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg><p class="text-xs text-red-300">${erro}</p></div>` : null}${sucesso ? html`<div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3"><svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><p class="text-xs text-emerald-300">${sucesso}</p></div>` : null}
           <button onClick=${isCad ? handleCadastrar : handleEntrar} disabled=${loading} class="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm">${loading ? html`<${Spinner} size="w-4 h-4" />` : isCad ? 'Criar minha conta' : 'Entrar na minha conta'}</button>
