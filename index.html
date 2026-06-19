@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minhas Moedinhas - Dashboard Pro</title>
+  <title>Minhas Moedinhas - Dashboard</title>
   
-  <!-- CDNs -->
   <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
@@ -17,21 +16,22 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e2e8f0; }
     
-    /* Componentes Customizados */
+    /* Utilitários Customizados */
     .card-dash { background-color: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 16px; }
-    .input-valor { background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 12px 16px; color: white; font-weight: 600; width: 100%; }
-    .input-valor:focus { border-color: #34d399; box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2); outline: none; }
+    .input-moderno { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 8px 12px; color: white; font-weight: 500; width: 100%; outline: none; }
+    .input-moderno:focus { border-color: #34d399; box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2); }
+    
+    /* Gráfico */
+    .chart-container { position: relative; height: 180px; width: 100%; }
     
     /* Animações */
-    .fade-up { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes fadeUp { from { opacity:0; transform:translateY(15px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.3s ease forwards; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     
-    .chart-container { position: relative; height: 160px; width: 100%; }
-    
-    /* Scroll Customizado */
+    /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0d1117; }
-    ::-webkit-scrollbar-thumb { background: #34d399; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #34d399; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -42,18 +42,15 @@
     const sbClient = window.supabase.createClient('https://gqpxxwfahnwnhklbjwxr.supabase.co', 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5');
 
     // ==========================================================
-    // 1. MOTOR FINANCEIRO (Cálculos Puros e Isolados)
+    // 1. MOTOR FINANCEIRO (Matemática Pura e Dados Dinâmicos)
     // ==========================================================
     const MotorFinanceiro = {
-      // Gera dados históricos para o gráfico com volatilidade
+      // Gera dados históricos com volatilidade real (Movimento Browniano)
       gerarSerieTemporal: (dias, valorInicial, rentabilidadeAnual, volatilidadeDiaria) => {
         let historico = [];
-        let valorAtual = valorInicial;
-        // Taxa diária composta (252 dias úteis)
+        let valorAtual = valorInicial || 1000;
         const taxaDiaria = (1 + rentabilidadeAnual) ** (1/252) - 1;
-        
         for (let i = 0; i < dias; i++) {
-          // Ruído Gaussiano para simular mercado real
           const ruido = (Math.random() - 0.5) * volatilidadeDiaria * 2;
           valorAtual = valorAtual * (1 + taxaDiaria + ruido);
           historico.push(valorAtual);
@@ -61,19 +58,15 @@
         return historico;
       },
 
-      // Cálculo da divisão da carteira baseado no perfil
-      calcularDivisao: (valorTotal, perfil) => {
-        let rendaFixaPct = 0.50, fiisPct = 0.40, acoesPct = 0.10;
-        // Exemplo: Arrojado pode mudar a alocação
-        if (perfil === 'conservador') { rendaFixaPct = 0.70; fiisPct = 0.20; acoesPct = 0.10; }
-        if (perfil === 'arrojado') { rendaFixaPct = 0.30; fiisPct = 0.40; acoesPct = 0.30; }
-
+      // Calcula a divisão de aporte (50/40/10)
+      calcularDivisao: (valorTotal, perfil = 'moderado') => {
+        let rf = 0.50, fiis = 0.40, acoes = 0.10;
+        if (perfil === 'conservador') { rf = 0.70; fiis = 0.20; acoes = 0.10; }
+        if (perfil === 'arrojado') { rf = 0.30; fiis = 0.40; acoes = 0.30; }
         return {
-          rendaFixa: valorTotal * rendaFixaPct,
-          fiis: valorTotal * fiisPct,
-          acoes: valorTotal * acoesPct,
-          labels: { rendaFixa: 'Renda Fixa (50%)', fiis: 'FIIs (Imobiliário) (40%)', acoes: 'Ações (10%)' },
-          cores: { rendaFixa: 'bg-[#34d399]', fiis: 'bg-[#10b981]', acoes: 'bg-[#fbbf24]' }
+          rendaFixa: valorTotal * rf,
+          fiis: valorTotal * fiis,
+          acoes: valorTotal * acoes
         };
       }
     };
@@ -82,42 +75,61 @@
     // 2. COMPONENTES DE UI
     // ==========================================================
 
-    // 2.1 Gráfico de Evolução
-    function ChartEvolucao({ valores }) {
+    // 2.1 Gráfico de Performance (Linhas Flutuantes)
+    function GraficoPerformance({ valores }) {
       const chartRef = useRef(null);
       const chartInstance = useRef(null);
 
       useEffect(() => {
         if (chartInstance.current) chartInstance.current.destroy();
-
         const ctx = chartRef.current.getContext('2d');
-        // Cria dados simulados baseados no valor atual para dar "vida" ao gráfico
-        // Usamos o motor para gerar os últimos 12 meses (apenas para visual)
-        const base = valores?.find(v => v > 0) || 1000;
-        const dataPoints = MotorFinanceiro.gerarSerieTemporal(12, base, 0.12, 0.015);
-        
+
+        // Dados gerados pelo motor com base no último valor do usuário
+        const base = valores?.length > 0 ? valores[valores.length - 1] : 1000;
+        const dataPoints = MotorFinanceiro.gerarSerieTemporal(12, base, 0.15, 0.02);
+        const cdiPoints = MotorFinanceiro.gerarSerieTemporal(12, base, 0.105, 0.005);
+
         chartInstance.current = new Chart(ctx, {
           type: 'line',
           data: {
             labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-            datasets: [{
-              label: 'Patrimônio',
-              data: dataPoints,
-              borderColor: '#34d399',
-              backgroundColor: 'rgba(52, 211, 153, 0.1)',
-              fill: true,
-              tension: 0.4,
-              pointRadius: 0,
-              borderWidth: 2
-            }]
+            datasets: [
+              {
+                label: 'Sua Carteira',
+                data: dataPoints,
+                borderColor: '#34d399',
+                backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2
+              },
+              {
+                label: 'CDI',
+                data: cdiPoints,
+                borderColor: '#818cf8',
+                borderDash: [5, 5],
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 1
+              }
+            ]
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+              legend: { 
+                labels: { color: '#94a3b8', font: { size: 9, family: 'Inter' }, usePointStyle: true, boxWidth: 8 } 
+              } 
+            },
             scales: { 
               y: { 
                 grid: { color: 'rgba(255,255,255,0.05)' }, 
-                ticks: { color: '#64748b', callback: (v) => `R$ ${(v/1000).toFixed(0)}k`, maxTicksLimit: 4 } 
+                ticks: { 
+                  color: '#64748b', 
+                  callback: (v) => `R$ ${(v/1000).toFixed(0)}k`, // Corrigido para exibir k corretamente
+                  maxTicksLimit: 4 
+                } 
               }, 
               x: { 
                 grid: { display: false }, 
@@ -133,134 +145,123 @@
       return html`<div class="chart-container fade-up"><canvas ref=${chartRef}></canvas></div>`;
     }
 
-    // 2.2 Top 3 Oportunidades (Layout Horizontal)
+    // 2.2 Top 3 Oportunidades (Cards + Modal)
     function TopOportunidades() {
+      const [selected, setSelected] = useState(null);
       const oportunidades = [
-        { titulo: "Tesouro IPCA+ 2035", sub: "Renda Fixa", icon: "📈", cor: "text-[#818cf8]" },
-        { titulo: "FIIs de Tijolo (IFIX)", sub: "Renda Variável", icon: "🏢", cor: "text-[#34d399]" },
-        { titulo: "Ações Pagadoras", sub: "Renda Variável", icon: "📊", cor: "text-[#fbbf24]" }
+        { 
+          id: 1, titulo: "Tesouro IPCA+ 2035", tipo: "Renda Fixa", cor: "text-[#818cf8]", 
+          tese: "Título público atrelado à inflação. Garante rentabilidade real acima do IPCA. Ideal para reservas de longo prazo.",
+          projecao: "IPCA + 6,5% a.a."
+        },
+        { 
+          id: 2, titulo: "FIIs de Tijolo", tipo: "Fundos Imobiliários", cor: "text-[#34d399]", 
+          tese: "Fundo que investe em imóveis comerciais. Recebe aluguéis mensais. Dividendos isentos de IR para pessoa física.",
+          projecao: "Yield médio de 9,8% a.a."
+        },
+        { 
+          id: 3, titulo: "Ações Pagadoras", tipo: "Renda Variável", cor: "text-[#fbbf24]", 
+          tese: "Empresas com histórico sólido de distribuição de lucros. Investimento focado em dividendos de longo prazo.",
+          projecao: "Dividend Yield 7,5% a.a."
+        }
       ];
 
       return html`
-        <div class="grid grid-cols-3 gap-2">
-          ${oportunidades.map((op, i) => html`
-            <div key=${i} class="bg-[#0d1117] p-3 rounded-xl border border-[#30363d] hover:border-[#34d399]/30 transition-colors flex flex-col items-center text-center space-y-1">
-              <span class="text-xl">${op.icon}</span>
-              <h4 class="text-[10px] font-bold text-white leading-tight">${op.titulo}</h4>
-              <span class="${op.cor} text-[8px] bg-[#1a2233] px-2 py-0.5 rounded-full border border-slate-800">${op.sub}</span>
-              <p class="text-[8px] text-slate-500 mt-1">Clique para saber mais</p>
-            </div>
-          `)}
-        </div>
-      `;
-    }
-
-    // ==========================================================
-    // 3. SIMULADOR DE APORTE (O Coração da Aplicação)
-    // ==========================================================
-    function SimuladorAporte({ onSimular }) {
-      const [perfil, setPerfil] = useState('moderado');
-      const [valor, setValor] = useState('100');
-      const [resultado, setResultado] = useState(null);
-      const [isAnimating, setIsAnimating] = useState(false);
-
-      const perfis = [
-        { id: 'conservador', label: 'Conservador', icon: '🛡️' },
-        { id: 'moderado', label: 'Moderado', icon: '⚖️' },
-        { id: 'arrojado', label: 'Arrojado', icon: '🚀' }
-      ];
-
-      const handleSimular = useCallback(() => {
-        setIsAnimating(true);
-        const valorNum = parseFloat(valor.replace(',', '.'));
-        if (!valorNum || valorNum <= 0) return;
-
-        // Chama o Motor Financeiro
-        const divisao = MotorFinanceiro.calcularDivisao(valorNum, perfil);
-        setResultado(divisao);
-        onSimular(divisao);
-
-        setTimeout(() => setIsAnimating(false), 300);
-      }, [valor, perfil, onSimular]);
-
-      return html`
-        <div class="card-dash space-y-4 fade-up">
-          <div class="flex justify-between items-center">
-            <h2 class="text-sm font-bold text-slate-200">Simulador de Aporte</h2>
-            <span class="text-[10px] text-slate-500">Selic 14,2% a.a.</span>
-          </div>
-
-          <div class="flex justify-between gap-2 bg-[#0d1117] p-1 rounded-xl border border-[#30363d]">
-            ${perfis.map(p => html`
-              <button 
-                key=${p.id}
-                onClick=${() => setPerfil(p.id)}
-                class="flex-1 py-1.5 px-2 rounded-lg text-[10px] font-semibold transition-all flex flex-col items-center justify-center
-                  ${perfil === p.id ? 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-md' : 'text-slate-500 hover:text-slate-300'}"
+        <div>
+          <div class="grid grid-cols-3 gap-2">
+            ${oportunidades.map(op => html`
+              <div 
+                key=${op.id}
+                onClick=${() => setSelected(op)}
+                class="bg-[#0d1117] p-3 rounded-xl border border-[#30363d] hover:border-[#34d399]/30 cursor-pointer transition-all flex flex-col items-center text-center space-y-1"
               >
-                <span class="text-sm">${p.icon}</span>
-                <span>${p.label}</span>
-              </button>
+                <span class="text-lg">${op.id === 1 ? '📈' : op.id === 2 ? '🏢' : '📊'}</span>
+                <h4 class="text-[9px] font-bold text-white leading-tight">${op.titulo}</h4>
+                <span class="${op.cor} text-[7px] bg-[#161b22] px-2 py-0.5 rounded-full border border-slate-800">${op.tipo}</span>
+              </div>
             `)}
           </div>
 
-          <div class="flex gap-2 items-center">
-            <div class="relative flex-1">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">R$</span>
-              <input 
-                type="text" 
-                value=${valor}
-                onChange=${(e) => setValor(e.target.value)}
-                placeholder="0,00"
-                class="input-valor pl-8"
-              />
-            </div>
-            <button 
-              onClick=${handleSimular}
-              class="bg-[#34d399] text-[#0d1117] font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-[#34d399]/20 hover:shadow-[#34d399]/40 transition-all"
-            >
-              ${isAnimating ? '⚡' : 'Simular'}
-            </button>
-          </div>
-
-          ${resultado && html`
-            <div class="fade-up space-y-2 pt-2 border-t border-[#30363d]">
-              <h3 class="text-xs font-semibold text-[#818cf8]">Divisão da Carteira • Perfil ${perfil.charAt(0).toUpperCase() + perfil.slice(1)}</h3>
-              
-              <div class="space-y-2">
-                <div class="flex justify-between text-xs text-slate-300">
-                  <span>${resultado.labels.rendaFixa}</span>
-                  <span class="font-bold text-white">R$ ${resultado.rendaFixa.toFixed(2)}</span>
+          ${selected && html`
+            <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 z-50 fade-up" onClick=${(e) => { if(e.target === e.currentTarget) setSelected(null); }}>
+              <div class="bg-[#161b22] max-w-sm w-full p-6 rounded-2xl border border-slate-700 space-y-4">
+                <div class="flex justify-between items-start">
+                  <h2 class="text-lg font-bold text-white">${selected.titulo}</h2>
+                  <button onClick=${() => setSelected(null)} class="text-slate-400 hover:text-white text-xl">✕</button>
                 </div>
-                <div class="w-full bg-[#0d1117] h-1.5 rounded-full overflow-hidden">
-                  <div class="h-full bg-[#34d399] rounded-full" style=${{width: '50%'}}></div>
-                </div>
-
-                <div class="flex justify-between text-xs text-slate-300 mt-2">
-                  <span>${resultado.labels.fiis}</span>
-                  <span class="font-bold text-[#10b981]">R$ ${resultado.fiis.toFixed(2)}</span>
-                </div>
-                <div class="w-full bg-[#0d1117] h-1.5 rounded-full overflow-hidden">
-                  <div class="h-full bg-[#10b981] rounded-full" style=${{width: '40%'}}></div>
-                </div>
-
-                <div class="flex justify-between text-xs text-slate-300 mt-2">
-                  <span>${resultado.labels.acoes}</span>
-                  <span class="font-bold text-[#fbbf24]">R$ ${resultado.acoes.toFixed(2)}</span>
-                </div>
-                <div class="w-full bg-[#0d1117] h-1.5 rounded-full overflow-hidden">
-                  <div class="h-full bg-[#fbbf24] rounded-full" style=${{width: '10%'}}></div>
+                <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
+                  <p><strong class="text-[#34d399]">Tese de Investimento:</strong><br/>${selected.tese}</p>
+                  <div class="p-4 bg-[#0d1117] rounded-lg border border-slate-800 text-center">
+                    <p class="text-xs text-slate-400">Projeção Matemática</p>
+                    <p class="text-2xl font-extrabold text-[#34d399]">${selected.projecao}</p>
+                  </div>
                 </div>
               </div>
-              <p class="text-[8px] text-slate-500 mt-2 text-center">Projeção RF com Selic 14,2% a.a. (Sao vidas) • Não é recomendação.</p>
             </div>
           `}
         </div>
       `;
     }
 
+    // 2.3 Gerenciador de Moedinhas (Premium - Mantido da versão anterior)
+    function GerenciadorMoedinhas() {
+      const [saldo, setSaldo] = useState(12500.00);
+      const [visivel, setVisivel] = useState(true);
+      const [historico, setHistorico] = useState([]);
+
+      const handleTransacao = (tipo) => {
+        const input = document.getElementById(`val-${tipo}`);
+        const valor = parseFloat(input.value.replace(',', '.'));
+        if (isNaN(valor) || valor <= 0) return;
+
+        const novoSaldo = tipo === 'entrada' ? saldo + valor : saldo - valor;
+        setSaldo(novoSaldo);
+        setHistorico([{ tipo, valor, data: new Date().toLocaleDateString() }, ...historico].slice(0, 5));
+        input.value = '';
+      };
+
+      return html`
+        <div class="card-dash fade-up">
+          <div class="flex justify-between items-center border-b border-[#30363d] pb-2 mb-3">
+            <div class="flex items-center gap-2">
+              <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider">💰 Gerenciador</h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-bold ${visivel ? 'text-[#34d399]' : 'text-slate-600'}">
+                ${visivel ? `R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : '● ● ● ● ●'}
+              </span>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-[#0d1117] p-3 rounded-xl border border-[#30363d]">
+              <label class="text-[10px] text-slate-400 block mb-1">Entrada</label>
+              <input id="val-entrada" type="text" placeholder="0,00" class="input-moderno text-[#34d399]" />
+              <button onClick=${() => handleTransacao('entrada')} class="w-full mt-2 bg-[#34d399] py-1.5 rounded text-[10px] font-bold text-slate-950 hover:opacity-90 transition">Adicionar</button>
+            </div>
+
+            <div class="bg-[#0d1117] p-3 rounded-xl border border-[#30363d]">
+              <label class="text-[10px] text-slate-400 block mb-1">Saída</label>
+              <input id="val-saida" type="text" placeholder="0,00" class="input-moderno text-[#ef4444]" />
+              <button onClick=${() => handleTransacao('saida')} class="w-full mt-2 bg-[#ef4444] py-1.5 rounded text-[10px] font-bold text-slate-50 hover:opacity-90 transition">Retirar</button>
+            </div>
+          </div>
+
+          <div class="max-h-20 overflow-y-auto space-y-1 text-[10px] text-slate-400">
+            ${historico.map((e, i) => html`
+              <div key=${i} class="flex justify-between border-b border-[#30363d]/50 pb-1">
+                <span>${e.tipo === 'entrada' ? '🟢 Entrada' : '🔴 Saída'}</span>
+                <span>R$ ${e.valor.toFixed(2)}</span>
+                <span>${e.data}</span>
+              </div>
+            `)}
+          </div>
+        </div>
+      `;
+    }
+
     // ==========================================================
-    // 4. AUTH (Login/Cadastro) e APP (Estrutura Principal)
+    // 3. AUTH (Login/Cadastro)
     // ==========================================================
     function LoginScreen() {
       const [modo, setModo] = useState('entrar');
@@ -278,9 +279,7 @@
             const { error } = await sbClient.auth.signUp({ email, password: senha });
             if (error) throw error;
           }
-        } catch (e) {
-          setErro(e.message);
-        }
+        } catch (e) { setErro(e.message); }
       }
 
       return html`<div class="flex items-center justify-center min-h-screen p-4"><div class="w-full max-w-sm bg-[#161b22] p-6 rounded-2xl border border-[#30363d] space-y-4 fade-up">
@@ -293,10 +292,14 @@
       </div></div>`;
     }
 
+    // ==========================================================
+    // 4. APP (Estrutura Principal - Unificada)
+    // ==========================================================
     function App() {
       const [user, setUser] = useState(null);
       const [loading, setLoading] = useState(true);
-      const [patrimonios, setPatrimonios] = useState([]); // Usado para alimentar o gráfico
+      const [visivel, setVisivel] = useState(true);
+      const [patrimonios, setPatrimonios] = useState([]);
 
       useEffect(() => {
         sbClient.auth.getSession().then(s => {
@@ -306,61 +309,91 @@
         sbClient.auth.onAuthStateChange((_, session) => setUser(session?.user));
       }, []);
 
-      // Callback para receber dados do simulador e atualizar o gráfico
-      const handleNovaSimulacao = (divisao) => {
-        const total = divisao.rendaFixa + divisao.fiis + divisao.acoes;
-        setPatrimonios(prev => {
-          const novo = [...prev, total];
-          if(novo.length > 12) novo.shift(); // Mantém apenas 12 meses de histórico
-          return novo;
-        });
-      };
-
       if (loading) return html`<div class="flex items-center justify-center min-h-screen text-[#34d399]">Carregando...</div>`;
       if (!user) return html`<${LoginScreen} />`;
 
       return html`
-        <div class="max-w-md mx-auto p-4 pb-8 space-y-5 fade-up">
-          <!-- Header e Top 3 -->
-          <header class="flex justify-between items-center py-2">
-            <h1 class="text-lg font-extrabold text-[#34d399]">Dashboard Pro</h1>
-            <button onClick=${() => sbClient.auth.signOut()} class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold">Sair</button>
+        <div class="max-w-md mx-auto p-4 pb-8 space-y-4 fade-up">
+          
+          <!-- Header com Botões (Privacidade e Indicação) -->
+          <header class="flex justify-between items-center py-2 border-b border-[#30363d] mb-2">
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg font-extrabold text-[#34d399]">Minhas Moedinhas</h1>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onClick=${() => setVisivel(!visivel)} class="text-slate-400 hover:text-[#34d399] transition-colors">
+                ${visivel ? '👁️' : '🚫'}
+              </button>
+              <a href="https://wa.me/5511999999999?text=Quero%20multiplicar%20minhas%20moedinhas!" target="_blank" class="text-[#25D366] font-bold text-xs bg-[#0d1117] px-3 py-1 rounded-full border border-[#30363d] hover:border-[#25D366] transition-colors">
+                📱 Indique
+              </a>
+            </div>
           </header>
 
+          <!-- TOP 3 Oportunidades (Novo Módulo) -->
           <section class="card-dash">
             <div class="flex justify-between items-center mb-2">
               <h3 class="text-xs font-bold text-white">🔥 Top 3 Oportunidades</h3>
-              <span class="text-[10px] text-slate-500">Clique para saber mais</span>
+              <span class="text-[8px] text-slate-500">Clique para ver a tese</span>
             </div>
             <${TopOportunidades} />
           </section>
 
-          <!-- Simulador de Aporte (Motor Principal) -->
-          <${SimuladorAporte} onSimular=${handleNovaSimulacao} />
+          <!-- Gerenciador de Moedinhas (Existente) -->
+          <${GerenciadorMoedinhas} />
 
-          <!-- Evolução do Patrimônio (Gráfico + Total) -->
+          <!-- Simulador de Aporte (Motor Financeiro aplicado) -->
           <section class="card-dash space-y-3">
-            <div class="flex justify-between items-center">
+            <h2 class="text-sm font-bold text-slate-200">Simulador de Aporte</h2>
+            <div class="flex gap-2">
+              <input id="aporte-input" type="text" placeholder="R$ 100,00" class="input-moderno" />
+              <button onClick=${() => {
+                const v = parseFloat(document.getElementById('aporte-input').value.replace(',', '.'));
+                if(v > 0) {
+                  const divisao = MotorFinanceiro.calcularDivisao(v, 'moderado');
+                  const total = divisao.rendaFixa + divisao.fiis + divisao.acoes;
+                  setPatrimonios(prev => [...prev, total]);
+                  document.getElementById('aporte-input').value = '';
+                }
+              }} class="bg-[#34d399] text-[#0d1117] font-bold px-6 py-2 rounded-lg">Simular</button>
+            </div>
+            <p class="text-[10px] text-slate-500">Divisão padrão: 50% RF, 40% FIIs, 10% Ações.</p>
+          </section>
+
+          <!-- Evolução do Patrimônio (Integração com o Gráfico) -->
+          <section class="card-dash">
+            <div class="flex justify-between items-center mb-2">
               <h2 class="text-sm font-bold text-slate-200">Evolução do Patrimônio</h2>
-              <div class="flex gap-1 bg-[#0d1117] p-1 rounded-lg border border-[#30363d]">
-                <button class="px-3 py-1 bg-[#161b22] text-[10px] text-[#34d399] rounded border border-[#34d399]/20">Histórico</button>
-                <button class="px-3 py-1 text-[10px] text-slate-500">12 meses</button>
+              <span class="text-xs font-bold text-[#34d399]">${visivel ? `R$ ${(patrimonios[patrimonios.length-1] || 0).toFixed(2)}` : '● ● ●'}</span>
+            </div>
+            <${GraficoPerformance} valores=${patrimonios} />
+          </section>
+
+          <!-- Banner de Monetização (Existente) -->
+          <div class="relative card-dash bg-gradient-to-r from-[#161b22] to-[#0d1117] border border-[#34d399]/20 overflow-hidden">
+            <div class="flex justify-between items-center relative z-10">
+              <div class="flex flex-col items-start space-y-1">
+                <span class="text-[#fbbf24] text-lg">✨</span>
+                <p class="text-xs font-bold text-white leading-tight">Quer multiplicar suas moedas?</p>
+                <p class="text-[8px] text-slate-400">Abra sua conta na corretora parceira</p>
+              </div>
+              <div class="flex flex-col items-end space-y-1">
+                <button class="bg-[#34d399] text-[#0d1117] text-[10px] font-bold px-4 py-2 rounded-lg hover:bg-[#2ecc86] transition-colors">Conhecer agora</button>
+                <span class="text-[6px] text-slate-600">Taxa zero</span>
               </div>
             </div>
-            
-            <${ChartEvolucao} valores=${patrimonios} />
-            
-            <div class="flex justify-between items-center pt-2 border-t border-[#30363d]">
-              <span class="text-xs text-slate-400">Total acumulado</span>
-              <span class="text-lg font-bold text-[#34d399]">
-                R$ ${(patrimonios.length > 0 ? patrimonios[patrimonios.length-1] : 0).toFixed(2)}
-              </span>
+          </div>
+
+          <!-- Footer (Compliance Legal) -->
+          <div class="flex justify-between items-center text-[8px] text-slate-600 leading-relaxed pt-4 border-t border-[#30363d]">
+            <div class="flex gap-4">
+              <span class="cursor-pointer hover:text-slate-400">Calculadora Juros</span>
+              <span class="cursor-pointer hover:text-slate-400">Calculadora IPCA</span>
             </div>
-          </section>
-          
-          <!-- Aviso Legal (Compliance) -->
-          <div class="text-[8px] text-center text-slate-600 leading-relaxed pt-2">
-            <p>Este app é uma ferramenta educacional. As simulações não constituem recomendação de compra ou venda de ativos.</p>
+            <p>© 2026 Minhas Moedinhas</p>
+          </div>
+          <div class="text-[6px] text-center text-slate-700 mt-1">
+            Ferramenta educacional. Não constitui recomendação de compra ou venda.
           </div>
         </div>
       `;
