@@ -4,27 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Minhas Moedinhas - Dashboard Pro</title>
-  
-  <!-- CDNs -->
   <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #0d1117; color: #e2e8f0; }
-    .chart-container { position: relative; height: 200px; width: 100%; }
+    .chart-container { position: relative; height: 250px; width: 100%; }
     .auth-input:focus { outline: none; border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
     .fade-up { animation: fadeUp 0.3s ease forwards; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-    
-    /* Scrollbar customizada para o modal */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #0d1117; }
-    ::-webkit-scrollbar-thumb { background: #34d399; border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -34,343 +26,73 @@
     const html = htm.bind(React.createElement);
     const sbClient = window.supabase.createClient('https://gqpxxwfahnwnhklbjwxr.supabase.co', 'sb_publishable_LiUY4XIO_xNS_aEqpmQlkQ_etMa1iB5');
 
-    // ==========================================================
-    // 1. MOTOR FINANCEIRO (Matemática Pura - Isolado da UI)
-    // ==========================================================
-    const MotorFinanceiro = {
-      // Simula dados históricos com volatilidade realista (Mark-to-Market)
-      gerarSerieTemporal: (dias, valorInicial, rentabilidadeAnual, volatilidadeDiaria) => {
-        let historico = [];
-        let valorAtual = valorInicial;
-        const taxaDiaria = (1 + rentabilidadeAnual) ** (1/252) - 1;
-        
-        for (let i = 0; i < dias; i++) {
-          // Fórmula: Preço = Preço anterior * (1 + Taxa Diária + Ruído Gaussiano)
-          const ruido = (Math.random() - 0.5) * volatilidadeDiaria * 2;
-          valorAtual = valorAtual * (1 + taxaDiaria + ruido);
-          historico.push(valorAtual);
-        }
-        return historico;
-      },
-
-      // Calcula o impacto de aportes mensais (Juros Compostos)
-      calcularCrescimentoComAporte: (saldoInicial, aporteMensal, meses, taxaAnual) => {
-        let saldo = saldoInicial;
-        const taxaMensal = (1 + taxaAnual) ** (1/12) - 1;
-        for(let i = 0; i < meses; i++) {
-          saldo = (saldo + aporteMensal) * (1 + taxaMensal);
-        }
-        return saldo;
-      }
-    };
-
-    // ==========================================================
-    // 2. GRÁFICO DE PERFORMANCE (Linhas Flutuantes com Chart.js)
-    // ==========================================================
-    function PerformanceChart({ patrimonios }) {
+    // Novo Componente de Gráfico Profissional
+    function PerformanceChart() {
       const chartRef = useRef(null);
-      const chartInstance = useRef(null);
-
       useEffect(() => {
-        if (chartInstance.current) chartInstance.current.destroy();
-
         const ctx = chartRef.current.getContext('2d');
-        
-        // Geração de dados dinâmicos via Motor Financeiro
-        const dias = 30; // Últimos 30 dias
-        const baseValue = patrimonios || 10000;
-        
-        // 1. Carteira do Usuário (Alta volatilidade)
-        const userData = MotorFinanceiro.gerarSerieTemporal(dias, baseValue, 0.15, 0.02);
-        
-        // 2. CDI (Baixa volatilidade - proxy Selic ~10.5% a.a.)
-        const cdiData = MotorFinanceiro.gerarSerieTemporal(dias, baseValue, 0.105, 0.005);
-        
-        // 3. IBOV (Média volatilidade)
-        const ibovData = MotorFinanceiro.gerarSerieTemporal(dias, baseValue, 0.08, 0.015);
-
-        // Labels (Datas)
-        const labels = Array.from({length: dias}, (_, i) => {
-          const d = new Date(); d.setDate(d.getDate() - (dias - 1 - i));
-          return `${d.getDate()}/${d.getMonth()+1}`;
-        });
-
-        chartInstance.current = new Chart(ctx, {
+        const chart = new Chart(ctx, {
           type: 'line',
           data: {
-            labels: labels,
+            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
             datasets: [
-              { 
-                label: 'Minha Carteira', 
-                data: userData, 
-                borderColor: '#34d399', 
-                backgroundColor: 'rgba(52, 211, 153, 0.1)', 
-                fill: true, 
-                tension: 0.4, // Curvas suaves
-                pointRadius: 0
-              },
-              { 
-                label: 'CDI', 
-                data: cdiData, 
-                borderColor: '#818cf8', 
-                borderDash: [5, 5], 
-                tension: 0.4,
-                pointRadius: 0
-              },
-              { 
-                label: 'IBOV', 
-                data: ibovData, 
-                borderColor: '#fbbf24', 
-                borderDash: [5, 5], 
-                tension: 0.4,
-                pointRadius: 0
-              }
+              { label: 'Sua Carteira', data: [1000, 1050, 1120, 1200, 1310, 1450], borderColor: '#34d399', backgroundColor: '#34d39922', fill: true, tension: 0.4 },
+              { label: 'CDI', data: [1000, 1012, 1025, 1038, 1052, 1065], borderColor: '#818cf8', borderDash: [5, 5], tension: 0.4 },
+              { label: 'IBOV', data: [1000, 990, 1040, 1020, 1090, 1120], borderColor: '#fbbf24', borderDash: [5, 5], tension: 0.4 }
             ]
           },
           options: {
-            responsive: true, 
-            maintainAspectRatio: false,
-            plugins: { 
-              legend: { 
-                labels: { color: '#94a3b8', font: { size: 10, family: 'Inter' }, usePointStyle: true } 
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-                callbacks: {
-                  label: function(context) {
-                    let label = context.dataset.label || '';
-                    if (label) label += ': ';
-                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                    return label;
-                  }
-                }
-              }
-            },
-            scales: { 
-              y: { 
-                grid: { color: '#1e293b' }, 
-                ticks: { color: '#64748b', callback: (v) => `R$ ${(v/1000).toFixed(0)}k` } 
-              }, 
-              x: { 
-                grid: { display: false }, 
-                ticks: { color: '#64748b', maxTicksLimit: 6 } 
-              } 
-            },
-            interaction: { intersect: false, mode: 'index' }
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+            scales: { y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }, x: { grid: { display: false }, ticks: { color: '#64748b' } } }
           }
         });
-
-        return () => { if (chartInstance.current) chartInstance.current.destroy(); };
-      }, [patrimonios]);
-
+        return () => chart.destroy();
+      }, []);
       return html`<div class="chart-container"><canvas ref=${chartRef}></canvas></div>`;
     }
 
-    // ==========================================================
-    // 3. MÓDULO TOP 3 OPORTUNIDADES (Orgânico e Interativo)
-    // ==========================================================
-    function TopOportunidades() {
-      const [selected, setSelected] = useState(null);
-      
-      // Mock de oportunidades (Alimentado semanalmente pelo admin)
-      const oportunidades = [
-        {
-          id: 1,
-          titulo: "Tesouro IPCA+ 2029",
-          categoria: "Renda Fixa",
-          descricao: "Título público atrelado à inflação, ideal para proteger o poder de compra.",
-          projecao: "12.5% a.a. + IPCA",
-          tese: "Proteção contra a inflação crescente. O governo paga uma taxa fixa acima da inflação, garantindo ganho real.",
-          risco: "Baixo (Risco Soberano)"
-        },
-        {
-          id: 2,
-          titulo: "FII HGLG11",
-          categoria: "Fundos Imobiliários",
-          descricao: "Fundo de galpões logísticos com alta taxa de ocupação.",
-          projecao: "Yield médio de 9.5% a.a.",
-          tese: "Setor de logística aquecido pelo e-commerce. Dividendos mensais isentos de IR.",
-          risco: "Médio (Variação de aluguel)"
-        },
-        {
-          id: 3,
-          titulo: "Ações PETR4",
-          categoria: "Ações",
-          descricao: "Maior empresa estatal de petróleo, pagadora de dividendos.",
-          projecao: "Potencial de 15% a.a. (Dividendos + Valorização)",
-          tese: "Empresa com geração de caixa robusta e preço do petróleo elevado.",
-          risco: "Alto (Volatilidade do barril)"
-        }
-      ];
-
-      return html`
-        <div class="space-y-3">
-          ${oportunidades.map(op => html`
-            <div 
-              key=${op.id} 
-              onClick=${() => setSelected(op)}
-              class="cursor-pointer bg-[#1a2233] p-3 rounded-xl border border-slate-800 hover:border-[#34d399]/40 transition-all flex justify-between items-center hover:scale-[1.01]"
-            >
-              <div>
-                <h4 class="text-sm font-bold text-white">${op.titulo}</h4>
-                <p class="text-[10px] text-slate-400">${op.categoria}</p>
-              </div>
-              <span class="text-[#34d399] font-bold text-xs">${op.projecao}</span>
-            </div>
-          `)}
-          
-          ${selected && html`
-            <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 fade-up" onClick=${(e) => { if(e.target === e.currentTarget) setSelected(null); }}>
-              <div class="bg-[#1a2233] max-w-sm w-full p-6 rounded-2xl border border-slate-700 space-y-4 max-h-[80vh] overflow-y-auto">
-                <div class="flex justify-between items-start">
-                  <h2 class="text-lg font-bold text-white">${selected.titulo}</h2>
-                  <button onClick=${() => setSelected(null)} class="text-slate-400 hover:text-white">✕</button>
-                </div>
-                <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
-                  <p><strong class="text-[#34d399]">O que é:</strong><br/>${selected.descricao}</p>
-                  <p><strong class="text-[#34d399]">Tese Matemática:</strong><br/>${selected.tese}</p>
-                  <div class="p-3 bg-[#0d1117] rounded-lg border border-slate-800">
-                    <p class="text-xs text-slate-400 text-center">Projeção de Rendimento</p>
-                    <p class="text-2xl font-bold text-center text-[#34d399]">${selected.projecao}</p>
-                  </div>
-                  <div class="flex justify-between text-xs text-slate-400 border-t border-slate-800 pt-3 mt-3">
-                    <span>Risco: <span class="text-yellow-400">${selected.risco}</span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `}
-        </div>
-      `;
-    }
-
-    // ==========================================================
-    // 4. GERENCIADOR DE MOEDINHAS (Premium - Cards e UI)
-    // ==========================================================
-    function GerenciadorMoedinhas() {
-      const [entradas, setEntradas] = useState([]); // Simulação de estado interno
-      const [saldo, setSaldo] = useState(12500);
-
-      const handleAtualizar = (tipo, valor) => {
-        // Feedback imediato (Tátil)
-        const novoSaldo = tipo === 'entrada' ? saldo + valor : saldo - valor;
-        setSaldo(novoSaldo);
-        setEntradas([...entradas, { tipo, valor, data: new Date().toLocaleDateString() }]);
-      };
-
-      return html`
-        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-          <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-            <h2 class="text-xs font-bold text-slate-300 uppercase tracking-wider">💰 Gerenciador</h2>
-            <span class="text-sm font-bold text-[#34d399]">R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-2">
-            <div class="bg-[#0d1117] p-3 rounded-xl border border-slate-800">
-              <label class="text-[10px] text-slate-400 block mb-1">Entrada</label>
-              <input type="number" id="val-entrada" placeholder="0,00" class="w-full bg-transparent text-white font-bold text-sm outline-none" />
-              <button onClick=${(e) => { const v = parseFloat(e.target.closest('div').querySelector('input').value); if(v) handleAtualizar('entrada', v); }} class="w-full mt-2 bg-[#34d399] py-1.5 rounded text-[10px] font-bold text-slate-950">Adicionar</button>
-            </div>
-
-            <div class="bg-[#0d1117] p-3 rounded-xl border border-slate-800">
-              <label class="text-[10px] text-slate-400 block mb-1">Saída</label>
-              <input type="number" id="val-saida" placeholder="0,00" class="w-full bg-transparent text-white font-bold text-sm outline-none" />
-              <button onClick=${(e) => { const v = parseFloat(e.target.closest('div').querySelector('input').value); if(v) handleAtualizar('saida', v); }} class="w-full mt-2 bg-[#ef4444] py-1.5 rounded text-[10px] font-bold text-slate-950">Retirar</button>
-            </div>
-          </div>
-
-          <div class="max-h-24 overflow-y-auto space-y-1 text-[10px] text-slate-400">
-            ${entradas.slice(-3).map((e, i) => html`
-              <div key=${i} class="flex justify-between border-b border-slate-800/50 pb-1">
-                <span>${e.tipo === 'entrada' ? '➕' : '➖'} ${e.tipo}</span>
-                <span>R$ ${e.valor.toFixed(2)}</span>
-                <span>${e.data}</span>
-              </div>
-            `)}
-          </div>
-        </section>
-      `;
-    }
-
-    // ==========================================================
-    // 5. AUTH (Login/Cadastro) e APP (Estrutura Principal)
-    // ==========================================================
     function LoginScreen() {
       const [modo, setModo] = useState('entrar');
-      const [email, setEmail] = useState('');
-      const [senha, setSenha] = useState('');
-      const [erro, setErro] = useState('');
-
+      const [email, setEmail] = useState(''), [senha, setSenha] = useState('');
       async function handleAuth() {
-        setErro('');
-        try {
-          if (modo === 'entrar') {
-            const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-            if (error) throw error;
-          } else {
-            const { error } = await sbClient.auth.signUp({ email, password: senha });
-            if (error) throw error;
-          }
-        } catch (e) {
-          setErro(e.message);
-        }
+        if (modo === 'entrar') await sbClient.auth.signInWithPassword({ email, password: senha });
+        else await sbClient.auth.signUp({ email, password: senha });
       }
-
-      return html`<div class="flex items-center justify-center min-h-screen p-4"><div class="w-full max-w-sm bg-[#1a2233] p-6 rounded-2xl border border-slate-800 space-y-4 fade-up">
-        <h1 class="text-xl font-bold text-[#34d399] text-center">Minhas Moedinhas</h1>
-        ${erro && html`<div class="bg-red-900/30 border border-red-500/50 p-2 rounded text-xs text-red-300 text-center">${erro}</div>`}
+      return html`<div class="flex items-center justify-center min-h-screen p-4"><div class="w-full max-w-sm bg-[#1a2233] p-6 rounded-2xl border border-slate-800 space-y-4">
+        <h1 class="text-xl font-bold text-[#34d399]">Minhas Moedinhas</h1>
         <input type="email" placeholder="E-mail" onChange=${e => setEmail(e.target.value)} class="w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-sm auth-input" />
         <input type="password" placeholder="Senha" onChange=${e => setSenha(e.target.value)} class="w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-sm auth-input" />
-        <button onClick=${handleAuth} class="w-full bg-[#34d399] py-3 rounded-xl font-bold text-slate-950 hover:opacity-90 transition">${modo === 'entrar' ? 'Entrar' : 'Cadastrar'}</button>
-        <button onClick=${() => { setModo(modo === 'entrar' ? 'cadastrar' : 'entrar'); setErro(''); }} class="w-full text-xs text-slate-500 underline text-center">${modo === 'entrar' ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}</button>
-        <p class="text-[8px] text-slate-600 text-center">Ao continuar, você concorda com nossos termos.</p>
+        <button onClick=${handleAuth} class="w-full bg-[#34d399] py-3 rounded-xl font-bold text-slate-950">${modo === 'entrar' ? 'Entrar' : 'Cadastrar'}</button>
+        <button onClick=${() => setModo(modo === 'entrar' ? 'cadastrar' : 'entrar')} class="w-full text-xs text-slate-500 underline">Alternar entre Login/Cadastro</button>
       </div></div>`;
     }
 
     function App() {
       const [user, setUser] = useState(null);
-      const [loading, setLoading] = useState(true);
-
       useEffect(() => {
-        sbClient.auth.getSession().then(s => {
-          setUser(s.data.session?.user);
-          setLoading(false);
-        });
+        sbClient.auth.getSession().then(s => setUser(s.data.session?.user));
         sbClient.auth.onAuthStateChange((_, session) => setUser(session?.user));
       }, []);
 
-      if (loading) return html`<div class="flex items-center justify-center min-h-screen text-[#34d399]">Carregando...</div>`;
       if (!user) return html`<${LoginScreen} />`;
 
       return html`
         <div class="max-w-md mx-auto p-4 space-y-6 fade-up">
-          <header class="flex justify-between items-center py-2">
-            <div class="flex items-center gap-2">
-              <span class="text-xl font-extrabold text-[#34d399]">Dashboard Pro</span>
-            </div>
-            <button onClick=${() => sbClient.auth.signOut()} class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold transition">Sair</button>
+          <header class="flex justify-between items-center py-4">
+            <h1 class="text-xl font-extrabold text-[#34d399]">Dashboard Pro</h1>
+            <button onClick=${() => sbClient.auth.signOut()} class="text-[10px] text-slate-500 hover:text-red-400 uppercase font-bold">Sair</button>
           </header>
 
-          <!-- Gráfico Principal -->
-          <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl">
+          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl">
             <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider mb-4">Performance vs Mercado</h2>
-            <${PerformanceChart} patrimonios={15000} />
+            <${PerformanceChart} />
           </section>
 
-          <!-- Gerenciador Premium -->
-          <${GerenciadorMoedinhas} />
-
-          <!-- Top 3 Oportunidades -->
-          <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl">
-            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider mb-4">🚀 Top 3 Oportunidades</h2>
-            <${TopOportunidades} />
+          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800">
+             <h3 class="text-xs font-bold text-slate-300 mb-2">Metodologia</h3>
+             <p class="text-[10px] text-slate-400 leading-relaxed">O gráfico compara sua rentabilidade contra o CDI e IBOV, refletindo o impacto real das suas decisões financeiras.</p>
           </section>
-          
-          <!-- Footer (Compliance) -->
-          <div class="text-[8px] text-center text-slate-500 leading-relaxed border-t border-slate-800 pt-4">
-            <p>Este app é uma ferramenta educacional. As simulações não constituem recomendação de compra ou venda de ativos.</p>
-          </div>
         </div>
       `;
     }
