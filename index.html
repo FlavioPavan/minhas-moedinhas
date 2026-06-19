@@ -3,21 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Minhas Moedinhas - Educação Financeira</title>
+  <title>Minhas Moedinhas</title>
   <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{}}}</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
-
-    /* Componentes visuais */
-    .bar-animate { transition: height 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
-    .bar-proj { background: linear-gradient(to top, #818cf8cc, #a5b4fcee); }
-    .bar-hist { background: #34d39980; }
-    .bar-hist:hover { background: #34d399; }
     .pulse-dot { animation: pulse-ring 2s cubic-bezier(0.455,0.03,0.515,0.955) infinite; }
     @keyframes pulse-ring { 0%,100%{opacity:1} 50%{opacity:0.35} }
     .progress-fill { transition: width 0.7s cubic-bezier(0.16,1,0.3,1); }
@@ -27,40 +22,16 @@
     .profile-btn, .sim-btn, .tab-btn, .auth-btn, .google-btn, .signout-btn, .whatsapp-btn { transition: all 0.18s ease; }
     .profile-btn:hover, .sim-btn:hover, .auth-btn:hover, .google-btn:hover, .whatsapp-btn:hover { transform: translateY(-1px); }
     .profile-btn:active, .sim-btn:active, .auth-btn:active, .google-btn:active, .whatsapp-btn:active { transform: scale(0.97); }
-    .sim-btn:hover { box-shadow: 0 4px 16px #34d39940; }
-    .auth-btn:hover { box-shadow: 0 4px 20px #34d39945; }
-    .google-btn:hover { border-color: #475569; background: #1e293b; }
-    .signout-btn:hover { background: rgba(30,41,59,0.8); color: #94a3b8; }
-    .whatsapp-btn:hover { box-shadow: 0 4px 16px rgba(37, 211, 102, 0.25); }
-
     .auth-input { transition: border-color 0.2s, box-shadow 0.2s; }
     .auth-input:focus { outline: none; border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.15); }
-
-    .bar-tooltip {
-      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
-      white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s;
-      background: #1e293b; border: 1px solid #334155; color: #e2e8f0; font-size: 9px; font-weight: 600;
-      padding: 3px 7px; border-radius: 6px; z-index: 10;
-    }
-    .bar-wrap:hover .bar-tooltip { opacity: 1; }
-
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     .fade-up { animation: fadeUp 0.3s ease forwards; }
-
     .privacy-blur { filter: blur(6px); transition: filter 0.25s ease; user-select: none; pointer-events: none; }
-    .privacy-blur-hover:hover .privacy-blur { filter: blur(3px); }
-
     .modal-overlay { background: rgba(13, 17, 23, 0.85); backdrop-filter: blur(8px); animation: fadeUp 0.3s ease forwards; }
-    .modal-card { animation: fadeUp 0.4s ease forwards; }
-
-    .banner-glow {
-      background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(129, 140, 248, 0.12));
-      border: 1px solid rgba(52, 211, 153, 0.25); transition: all 0.3s ease;
-    }
+    .banner-glow { background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(129, 140, 248, 0.12)); border: 1px solid rgba(52, 211, 153, 0.25); transition: all 0.3s ease; }
     .banner-glow:hover { border-color: rgba(52, 211, 153, 0.5); box-shadow: 0 0 24px rgba(52, 211, 153, 0.08); }
-
     .badge-off { filter: grayscale(1); opacity: 0.4; transition: all 0.4s ease; }
     .badge-on { filter: grayscale(0); opacity: 1; transition: all 0.4s ease; }
     .badge-pulse { animation: pulse-badge 1.5s ease-in-out infinite; }
@@ -69,180 +40,121 @@
 </head>
 <body class="bg-[#0d1117] text-slate-100 antialiased">
   <div id="root"></div>
-
   <script>
+    /* ════════ CONFIGURAÇÃO GLOBAL ════════ */
     const { useState, useEffect, useCallback, useMemo } = React;
     const html = htm.bind(React.createElement);
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // ☁️  SUPABASE — Configuração
-    // ═══════════════════════════════════════════════════════════════════════════
     const SUPABASE_URL = 'https://gqpxxwfahnwnhklbjwxr.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcHh4d2ZhaG53bmhrbGJqd3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjYyNjEsImV4cCI6MjA5NzI0MjI2MX0.ntq4ABMCXOhvjI-yU5XH7bclEGMVY0_72Admuid1Zn4';
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SELIC_FALLBACK = 10.5;
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🗄️  CAMADA DE DADOS
-    // ═══════════════════════════════════════════════════════════════════════════
-    async function dbLoad(userId) {
-      const { data, error } = await sbClient.from('portfolios').select('aporte, perfil').eq('user_id', userId).maybeSingle();
-      if (error) { console.error('[DB] load:', error.message); return { aporte: null, perfil: 'moderado' }; }
-      return { aporte: data?.aporte ?? null, perfil: data?.perfil ?? 'moderado' };
-    }
-
-    async function dbSave(userId, aporte, perfil) {
-      const { error } = await sbClient.from('portfolios').upsert({ user_id: userId, aporte, perfil }, { onConflict: 'user_id' });
-      if (error) console.error('[DB] upsert:', error.message);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🔑  TRADUÇÃO DE ERROS
-    // ═══════════════════════════════════════════════════════════════════════════
+    function fmtBRL(v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function traduzirErro(msg) {
-      if (!msg) return 'Ocorreu um erro. Tente novamente.';
+      if (!msg) return 'Ocorreu um erro.';
       if (msg.includes('Invalid login credentials')) return 'E-mail ou senha incorretos.';
-      if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
+      if (msg.includes('Email not confirmed')) return 'Confirme seu e-mail.';
       if (msg.includes('User already registered')) return 'Este e-mail já possui cadastro.';
       if (msg.includes('Password should be')) return 'A senha deve ter pelo menos 6 caracteres.';
-      if (msg.includes('rate limit')) return 'Muitas tentativas. Aguarde alguns minutos.';
-      if (msg.includes('provider is not enabled')) return 'Login com Google não está configurado ainda.';
       return msg;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 📊  DADOS ESTÁTICOS
-    // ═══════════════════════════════════════════════════════════════════════════
-    const SELIC_FALLBACK = 10.5;
+    /* ════════ CAMADA DE DADOS ════════ */
+    async function dbLoad(userId) {
+      const { data, error } = await sbClient.from('portfolios').select('aporte, perfil').eq('user_id', userId).maybeSingle();
+      if (error) return { aporte: null, perfil: 'moderado' };
+      return { aporte: data?.aporte ?? null, perfil: data?.perfil ?? 'moderado' };
+    }
+    async function dbSave(userId, aporte, perfil) {
+      await sbClient.from('portfolios').upsert({ user_id: userId, aporte, perfil }, { onConflict: 'user_id' });
+    }
+    async function carregarTransacoes(userId) {
+      const { data, error } = await sbClient.from('transacoes').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      return error ? [] : (data || []);
+    }
+    async function salvarTransacao(userId, descricao, valor, tipo) {
+      await sbClient.from('transacoes').insert({ user_id: userId, descricao: descricao.trim(), valor: parseFloat(valor), tipo });
+    }
+    async function deletarTransacao(id) {
+      await sbClient.from('transacoes').delete().eq('id', id);
+    }
+
+    /* ════════ DADOS ESTÁTICOS ════════ */
     const PERFIS = {
       conservador: {
         label: 'Conservador', emoji: '🛡️',
         alocacao: [
           { nome: 'Renda Fixa', pct: 0.70, cor: 'text-indigo-400', bg: 'bg-indigo-400' },
-          { nome: 'FIIs (Imobiliário)', pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações', pct: 0.10, cor: 'text-amber-400', bg: 'bg-amber-400' },
+          { nome: 'FIIs', pct: 0.20, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações', pct: 0.10, cor: 'text-amber-400', bg: 'bg-amber-400' }
         ],
         oportunidades: [
-          { id: 'tesouro-selic-2029', emoji: '🏛️', titulo: 'Tesouro Selic 2029', subtitulo: 'Renda Fixa · Risco Baixíssimo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', descricao: 'O título público mais seguro do país, com rentabilidade diária atrelada à Selic. Ideal para reserva de emergência e aportes iniciais, com liquidez diária and risco soberano.', cta: 'Investir no Tesouro Selic', href: 'https://www.tesourodireto.com.br/titulos/selic.htm', destaque: 'Segurança máxima e liquidez diária — a porta de entrada perfeita.' },
-          { id: 'cdb-105-cdi', emoji: '🏦', titulo: 'CDB 105% do CDI', subtitulo: 'Renda Fixa · Risco Baixo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', descricao: 'Certificado de Depósito Bancário com rentabilidade de 105% do CDI, oferecendo rendimento superior à poupança com a proteção do FGC (até R$ 250 mil).', cta: 'Ver CDBs disponíveis', href: 'https://www.xpi.com.br/investimentos/renda-fixa/cdb/', destaque: 'Rentabilidade atraente com garantia do FGC.' },
-          { id: 'lci-lca-bancao', emoji: '🏛️', titulo: 'LCI/LCA de Bancão', subtitulo: 'Renda Fixa · Risco Baixo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', descricao: 'Letras de Crédito Imobiliário e do Agronegócio emitidas por grandes bancos, com isenção de IR para pessoa física e rentabilidade atrelada ao CDI.', cta: 'Conhecer LCI/LCA', href: 'https://www.nubank.com.br/investimentos/lci-lca/', destaque: 'Isenção de IR e baixo risco, ideal para conservadores.' }
+          { id: 'tesouro-selic', emoji: '🏛️', titulo: 'Tesouro Selic 2029', tag: 'Renda Fixa · Risco Baixíssimo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', desc: 'O título público mais seguro. Ideal para reserva de emergência.' },
+          { id: 'cdb-105', emoji: '🏦', titulo: 'CDB 105% do CDI', tag: 'Renda Fixa · Risco Baixo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', desc: 'Certificado de Depósito com 105% do CDI e proteção do FGC.' },
+          { id: 'lci-lca', emoji: '🏛️', titulo: 'LCI/LCA de Bancão', tag: 'Renda Fixa · Risco Baixo', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', desc: 'Letras de Crédito Imobiliário e do Agronegócio, com isenção de IR.' }
         ]
       },
       moderado: {
         label: 'Moderado', emoji: '⚖️',
         alocacao: [
           { nome: 'Renda Fixa', pct: 0.50, cor: 'text-indigo-400', bg: 'bg-indigo-400' },
-          { nome: 'FIIs (Imobiliário)', pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações', pct: 0.10, cor: 'text-amber-400', bg: 'bg-amber-400' },
+          { nome: 'FIIs', pct: 0.40, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações', pct: 0.10, cor: 'text-amber-400', bg: 'bg-amber-400' }
         ],
         oportunidades: [
-          { id: 'tesouro-ipca', emoji: '📈', titulo: 'Tesouro IPCA+ 2035', subtitulo: 'Renda Fixa · Risco Médio', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', descricao: 'Título público que paga a inflação (IPCA) mais um juro real, protegendo o poder de compra no longo prazo. Ótimo para planejamento de aposentadoria.', cta: 'Investir no Tesouro IPCA+', href: 'https://www.tesourodireto.com.br/titulos/ipca.htm', destaque: 'Proteção contra inflação com rentabilidade real.' },
-          { id: 'fii-tijolo', emoji: '🏢', titulo: 'FIIs de Tijolo (IFIX)', subtitulo: 'Renda Variável · Risco Médio', tagColor: 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/40', descricao: 'Fundos Imobiliários que investem em imóveis físicos (shoppings, galpões, escritórios), pagando dividendos mensais isentos de IR. Acompanhe o IFIX para referência.', cta: 'Ver FIIs do IFIX', href: 'https://statusinvest.com.br/fundos-imobiliarios', destaque: 'Dividendos mensais e isenção de IR para pessoa física.' },
-          { id: 'acoes-dividendos', emoji: '📊', titulo: 'Ações Pagadoras de Dividendos', subtitulo: 'Renda Variável · Risco Médio', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', descricao: 'Ações de empresas maduras com histórico de pagamento de dividendos consistentes, como bancos e utilidades. Oferecem renda passiva e potencial de valorização.', cta: 'Explorar ações dividend yield', href: 'https://www.xpi.com.br/acoes/', destaque: 'Renda passiva + potencial de crescimento.' }
+          { id: 'tesouro-ipca', emoji: '📈', titulo: 'Tesouro IPCA+ 2035', tag: 'Renda Fixa · Risco Médio', tagColor: 'bg-indigo-900/60 text-indigo-300 border border-indigo-700/40', desc: 'Título que paga a inflação (IPCA) mais um juro real.' },
+          { id: 'fii-tijolo', emoji: '🏢', titulo: 'FIIs de Tijolo', tag: 'Renda Variável · Risco Médio', tagColor: 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/40', desc: 'Fundos Imobiliários que investem em imóveis físicos, com dividendos isentos.' },
+          { id: 'acoes-dividendos', emoji: '📊', titulo: 'Ações Pagadoras', tag: 'Renda Variável · Risco Médio', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', desc: 'Ações de empresas maduras com histórico de pagamento de dividendos.' }
         ]
       },
       arrojado: {
         label: 'Arrojado', emoji: '🚀',
         alocacao: [
           { nome: 'Renda Fixa', pct: 0.20, cor: 'text-indigo-400', bg: 'bg-indigo-400' },
-          { nome: 'FIIs (Imobiliário)', pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
-          { nome: 'Ações', pct: 0.50, cor: 'text-amber-400', bg: 'bg-amber-400' },
+          { nome: 'FIIs', pct: 0.30, cor: 'text-emerald-400', bg: 'bg-emerald-400' },
+          { nome: 'Ações', pct: 0.50, cor: 'text-amber-400', bg: 'bg-amber-400' }
         ],
         oportunidades: [
-          { id: 'acoes-small-caps', emoji: '🚀', titulo: 'Ações Small Caps', subtitulo: 'Renda Variável · Risco Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', descricao: 'Empresas de pequena capitalização com alto potencial de crescimento, mas maior volatilidade. Ideal para investidores com horizonte de longo prazo e tolerância ao risco.', cta: 'Descobrir Small Caps', href: 'https://www.xpi.com.br/acoes/small-caps/', destaque: 'Alto potencial de retorno no longo prazo.' },
-          { id: 'etf-ivvb11', emoji: '🌎', titulo: 'ETF Internacional — IVVB11', subtitulo: 'Renda Variável · Risco Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', descricao: 'ETF que replica o índice S&P 500, oferecendo exposição às maiores empresas dos EUA. Diversificação internacional e potencial de crescimento global.', cta: 'Investir em IVVB11', href: 'https://www.b3.com.br/pt_br/produtos-e-servicos/negociacao/etf/etf-ivvb11.htm', destaque: 'Diversificação internacional com exposição ao mercado americano.' },
-          { id: 'cripto-bitcoin', emoji: '₿', titulo: 'Bitcoin (criptoativos)', subtitulo: 'Ativo Alternativo · Risco Muito Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', descricao: 'Bitcoin, a principal criptomoeda, com histórico de alta volatilidade e retornos expressivos no longo prazo. Considere uma alocação tática para diversificação.', cta: 'Saiba mais sobre Bitcoin', href: 'https://www.mercadobitcoin.com.br/', destaque: 'Potencial exponencial com risco elevado.' }
+          { id: 'acoes-smallcaps', emoji: '🚀', titulo: 'Ações Small Caps', tag: 'Renda Variável · Risco Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', desc: 'Empresas de pequena capitalização com alto potencial de crescimento.' },
+          { id: 'etf-ivvb11', emoji: '🌎', titulo: 'ETF Internacional IVVB11', tag: 'Renda Variável · Risco Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', desc: 'ETF que replica o índice S&P 500, exposição aos EUA.' },
+          { id: 'cripto-bitcoin', emoji: '₿', titulo: 'Bitcoin', tag: 'Ativo Alternativo · Risco Alto', tagColor: 'bg-amber-900/60 text-amber-300 border border-amber-700/40', desc: 'Bitcoin, a principal criptomoeda, com alta volatilidade.' }
         ]
       }
     };
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🔧  UTILITÁRIOS
-    // ═══════════════════════════════════════════════════════════════════════════
-    function fmtBRL(v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function gerarHistoricoDinamico(aporteAtual, perfil, selicAnual) {
-      const base = (aporteAtual && aporteAtual > 0) ? aporteAtual : 1000;
-      const alocacao = PERFIS[perfil].alocacao;
-      const rfPct = alocacao[0].pct, fiiPct = alocacao[1].pct, acoesPct = alocacao[2].pct;
-      const taxaMensalRF = Math.pow(1 + selicAnual / 100, 1 / 12) - 1;
-      const fiiMensal = 0.006, acoesMensal = 0.010;
-      const rentMediaMensal = rfPct * taxaMensalRF + fiiPct * fiiMensal + acoesPct * acoesMensal;
-      const meses = ['Jan','Fev','Mar','Abr','Mai','Jun'];
-      const historico = []; let valor = base;
-      for (let i = meses.length - 1; i >= 0; i--) {
-        const mes = meses[i];
-        if (i === meses.length - 1) historico.push({ mes, valor });
-        else { valor = valor / (1 + rentMediaMensal); historico.push({ mes, valor }); }
-      }
-      return historico.reverse();
-    }
-    function gerarProjecao(aporte, perfilObj, selicAnual) {
-      const rfPct = perfilObj.alocacao[0].pct, fiiPct = perfilObj.alocacao[1].pct, acoesPct = perfilObj.alocacao[2].pct;
-      const taxaMensal = Math.pow(1 + selicAnual / 100, 1 / 12) - 1;
-      const fiiMensal = 0.006, acoesMensal = 0.010;
-      const meses = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
-      let rf = aporte * rfPct, fii = aporte * fiiPct, acoes = aporte * acoesPct;
-      return meses.map(function(mes, i) {
-        if (i > 0) { rf *= 1 + taxaMensal; fii *= 1 + fiiMensal; acoes *= 1 + acoesMensal; }
-        return { mes, valor: rf + fii + acoes };
-      });
-    }
     function useTickersSimulados() {
       const [tickers, setTickers] = useState({ cdi: 12.15, ibov: 126000, ifix: 3500 });
       useEffect(() => {
-        const interval = setInterval(() => {
-          setTickers(prev => ({ cdi: prev.cdi + (Math.random() - 0.5) * 0.02, ibov: prev.ibov + (Math.random() - 0.5) * 200, ifix: prev.ifix + (Math.random() - 0.5) * 5 }));
-        }, 5000);
+        const interval = setInterval(() => setTickers(prev => ({
+          cdi: prev.cdi + (Math.random() - 0.5) * 0.02, ibov: prev.ibov + (Math.random() - 0.5) * 200, ifix: prev.ifix + (Math.random() - 0.5) * 5
+        })), 5000);
         return () => clearInterval(interval);
       }, []);
       return tickers;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🧩  COMPONENTES ATÔMICOS
-    // ═══════════════════════════════════════════════════════════════════════════
-    function Spinner({ size }) { const s = size || 'w-5 h-5'; return html`<svg class=${'spin ' + s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#1e293b" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#34d399" stroke-width="3" stroke-linecap="round"/></svg>`; }
-    function CoinLogo({ size }) { const s = size || 28; return html`<svg width=${s} height=${s} viewBox="0 0 28 28" fill="none" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#34d399" fill-opacity="0.12"/><circle cx="14" cy="14" r="10" fill="#34d399" fill-opacity="0.22"/><circle cx="14" cy="14" r="7"  fill="#34d399" fill-opacity="0.18"/><text x="14" y="18.5" text-anchor="middle" font-size="11" font-family="Inter,system-ui,sans-serif" font-weight="800" fill="#34d399">$</text></svg>`; }
-    function SelicBadge({ selic, isLive, loading }) {
-      if (loading) return html`<div class="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50"><span class="w-1.5 h-1.5 rounded-full bg-slate-600 pulse-dot inline-block"></span>Buscando Selic…</div>`;
-      const dotCls = isLive ? 'bg-emerald-400' : 'bg-amber-400', txtCls = isLive ? 'text-emerald-400' : 'text-amber-400', label = isLive ? 'Selic ao vivo' : 'Média de mercado';
-      return html`<div class="flex items-center gap-1.5 text-[10px] bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50"><span class=${'w-1.5 h-1.5 rounded-full pulse-dot inline-block ' + dotCls}></span><span class=${'font-semibold ' + txtCls}>${selic.toFixed(2)}% a.a.</span><span class="text-slate-500">${label}</span></div>`;
-    }
-    function TickersBar({ tickers }) {
-      return html`<div class="flex flex-wrap gap-2 text-[9px] text-slate-400 bg-slate-800/40 px-2.5 py-1.5 rounded-full border border-slate-700/40 mt-1">
-        <span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400/70"></span>CDI: <span class="text-indigo-300 font-medium">${tickers.cdi.toFixed(2)}%</span></span>
-        <span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span>IBOV: <span class="text-emerald-300 font-medium">${Math.round(tickers.ibov).toLocaleString('pt-BR')}</span></span>
-        <span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/70"></span>IFIX: <span class="text-amber-300 font-medium">${Math.round(tickers.ifix).toLocaleString('pt-BR')}</span></span>
-      </div>`;
-    }
-    function PerfilSelector({ perfil, onChange }) {
-      return html`<div class="flex gap-1.5 bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800">
-        ${['conservador','moderado','arrojado'].map(key => {
-          const p = PERFIS[key], ativo = perfil === key, cls = ativo ? 'bg-[#1a2233] border-[#34d399]/50 text-[#34d399] shadow-sm' : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300';
-          return html`<button key=${key} class=${'profile-btn flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-[10px] font-semibold cursor-pointer border ' + cls} onClick=${() => onChange(key)}><span class="text-base leading-none mb-0.5">${p.emoji}</span>${p.label}</button>`;
-        })}
-      </div>`;
-    }
-    
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 📈  NOVO GRÁFICO DE LINHAS (Substituindo as barras)
-    // ═══════════════════════════════════════════════════════════════════════════
-    function GraficoLinhas({ resultado, perfil, selic }) {
+    /* ════════ NOVO GRÁFICO DE LINHAS ════════ */
+    function GraficoLinhas({ resultado, selic }) {
       if (!resultado || resultado <= 0) return html`<div class="h-32 flex items-center justify-center border border-dashed border-slate-700/60 rounded-xl bg-[#0d1117]/30"><p class="text-[10px] text-slate-500">Simule um valor para ver o gráfico</p></div>`;
       const meses = ['Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai','Jun'];
       const taxaMensalRF = Math.pow(1 + selic / 100, 1 / 12) - 1;
-      const proj = []; let rf = resultado * 0.5, fii = resultado * 0.4, acoes = resultado * 0.1, poup = resultado;
+      const proj = [];
+      let rf = resultado * 0.5, fii = resultado * 0.4, acoes = resultado * 0.1, poup = resultado;
       for (let i = 0; i < meses.length; i++) {
         if (i > 0) { rf *= 1 + taxaMensalRF; fii *= 1 + 0.006; acoes *= 1 + 0.010; poup *= 1 + 0.005; }
         proj.push({ mes: meses[i], rf, fii, acoes, poup });
       }
-      const maxVal = Math.max(...proj.flatMap(d => [d.rf, d.fii, d.acoes, d.poup]));
+      const maxVal = Math.max(...proj.flatMap(d => [d.rf, d.fii, d.acoes, d.poup]), 1);
       const h = 130, w = 260, pad = 20;
       const escala = (v) => h - ((v / maxVal) * (h - pad));
-      const geraPath = (tipo) => proj.map((d, i) => {
-        const x = pad + (i / (proj.length - 1)) * (w - pad * 2);
-        const y = escala(d[tipo]);
-        return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-      }).join(' ');
+      const geraPath = (tipo) => {
+        if (proj.length === 0) return '';
+        return proj.map((d, i) => {
+          const x = pad + (i / (proj.length - 1)) * (w - pad * 2);
+          const y = escala(d[tipo]);
+          return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+        }).join(' ');
+      };
       const last = proj[proj.length - 1];
       return html`
         <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl mt-4">
@@ -252,10 +164,10 @@
               <defs><linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a2233"/><stop offset="100%" stop-color="#0d1117"/></linearGradient></defs>
               <rect width="280" height="160" fill="url(#bgGrad)" rx="8" />
               ${proj.map((d, i) => html`<line key=${i} x1=${pad + (i / (proj.length - 1)) * (w - pad * 2)} y1=${h - pad} x2=${pad + (i / (proj.length - 1)) * (w - pad * 2)} y2=${h - pad + 8} stroke="#334155" stroke-width="1.5" />`)}
-              <path d=${geraPath('poup')} fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-              <path d=${geraPath('rf')} fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d=${geraPath('fii')} fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d=${geraPath('acoes')} fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              ${proj.length > 0 ? html`<path d=${geraPath('poup')} fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>` : null}
+              ${proj.length > 0 ? html`<path d=${geraPath('rf')} fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : null}
+              ${proj.length > 0 ? html`<path d=${geraPath('fii')} fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : null}
+              ${proj.length > 0 ? html`<path d=${geraPath('acoes')} fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : null}
               ${proj.map((d, i) => html`<circle key=${i} cx=${pad + (i / (proj.length - 1)) * (w - pad * 2)} cy=${escala(d.acoes)} r="2.5" fill="#34d399" />`)}
             </svg>
           </div>
@@ -268,859 +180,146 @@
         </section>`;
     }
 
+    /* ════════ COMPONENTES ATÔMICOS ════════ */
+    function Spinner({ size }) { const s = size || 'w-5 h-5'; return html`<svg class=${'spin ' + s} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#1e293b" stroke-width="3"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#34d399" stroke-width="3" stroke-linecap="round"/></svg>`; }
+    function CoinLogo({ size }) { const s = size || 28; return html`<svg width=${s} height=${s} viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="14" fill="#34d399" fill-opacity="0.12"/><circle cx="14" cy="14" r="10" fill="#34d399" fill-opacity="0.22"/><circle cx="14" cy="14" r="7" fill="#34d399" fill-opacity="0.18"/><text x="14" y="18.5" text-anchor="middle" font-size="11" font-family="Inter,sans-serif" font-weight="800" fill="#34d399">$</text></svg>`; }
+    function SelicBadge({ selic, isLive, loading }) {
+      let dotColor = 'bg-slate-600', textColor = 'text-slate-600', label = 'Buscando...';
+      if (!loading) { dotColor = isLive ? 'bg-emerald-400' : 'bg-amber-400'; textColor = isLive ? 'text-emerald-400' : 'text-amber-400'; label = isLive ? 'Selic ao vivo' : 'Média de mercado'; }
+      return html`<div class="flex items-center gap-1.5 text-[10px] bg-slate-800/60 px-2.5 py-1 rounded-full border border-slate-700/50">${loading ? html`<span class="w-1.5 h-1.5 rounded-full bg-slate-600 pulse-dot"></span>` : html`<span class=${'w-1.5 h-1.5 rounded-full pulse-dot inline-block ' + dotColor}></span>`}<span class=${'font-semibold ' + textColor}>${!loading ? selic.toFixed(2) + '% a.a.' : 'Carregando...'}</span><span class="text-slate-500">${label}</span></div>`;
+    }
+    function TickersBar({ tickers }) { return html`<div class="flex flex-wrap gap-2 text-[9px] text-slate-400 bg-slate-800/40 px-2.5 py-1.5 rounded-full border border-slate-700/40 mt-1"><span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400/70"></span>CDI: <span class="text-indigo-300 font-medium">${tickers.cdi.toFixed(2)}%</span></span><span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span>IBOV: <span class="text-emerald-300 font-medium">${Math.round(tickers.ibov).toLocaleString('pt-BR')}</span></span><span class="flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/70"></span>IFIX: <span class="text-amber-300 font-medium">${Math.round(tickers.ifix).toLocaleString('pt-BR')}</span></span></div>`; }
+    function PerfilSelector({ perfil, onChange }) { return html`<div class="flex gap-1.5 bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800">${['conservador','moderado','arrojado'].map(key => { const p = PERFIS[key], ativo = perfil === key; return html`<button key=${key} class=${'profile-btn flex-1 flex flex-col items-center py-2 px-1 rounded-lg text-[10px] font-semibold cursor-pointer border ' + (ativo ? 'bg-[#1a2233] border-[#34d399]/50 text-[#34d399] shadow-sm' : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300')} onClick=${() => onChange(key)}><span class="text-base leading-none mb-0.5">${p.emoji}</span>${p.label}</button>`; })}</div>`; }
     function ResultadoAlocacao({ resultado, perfil, selic, selicIsLive, selicLoading, showValues }) {
       const alocacao = PERFIS[perfil].alocacao, rfItem = alocacao[0], rendMensal = (resultado * rfItem.pct * selic / 100) / 12;
-      return html`<div class="space-y-2.5"><p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Divisão da carteira · Perfil ${PERFIS[perfil].emoji} ${PERFIS[perfil].label}</p>${alocacao.map(a => { const bruto = resultado * a.pct; const pctLabel = Math.round(a.pct * 100); const wSty = { width: (a.pct * 100) + '%' }; const displayBruto = showValues ? 'R$ ' + fmtBRL(bruto) : 'R$ ••••'; return html`<div key=${a.nome} class="bg-[#0d1117]/70 p-3.5 rounded-xl border border-slate-800 space-y-2"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class=${'w-1.5 h-6 rounded-full flex-shrink-0 opacity-80 ' + a.bg}></div><div class="min-w-0"><p class="text-xs text-slate-300 font-medium">${a.nome} (${pctLabel}%)</p>${a === rfItem && !selicLoading && html`<p class="text-[9px] text-slate-500 mt-0.5 ${showValues ? '' : 'privacy-blur'}">${showValues ? '≈ R$ ' + rendMensal.toFixed(2) + '/mês em juros' : '≈ R$ ••••/mês'}${!selicIsLive ? ' · média' : ''}</p>`}</div></div><span class=${'font-bold text-sm flex-shrink-0 ' + a.cor}>${displayBruto}</span></div><div class="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class=${'h-full rounded-full progress-fill ' + a.bg} style=${wSty}></div></div></div>`; })}<p class="text-[9px] text-slate-600 text-center pt-1">Projeção RF com Selic ${selic.toFixed(1)}% a.a. ${selicIsLive ? ' (ao vivo)' : ' (média de mercado)'} · Não é recomendação de investimento.</p></div>`;
+      return html`<div class="space-y-2.5"><p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Divisão da carteira · Perfil ${PERFIS[perfil].emoji} ${PERFIS[perfil].label}</p>${alocacao.map(a => { const bruto = resultado * a.pct; return html`<div key=${a.nome} class="bg-[#0d1117]/70 p-3.5 rounded-xl border border-slate-800 space-y-2"><div class="flex items-center justify-between"><div class="flex items-center gap-2 min-w-0"><div class=${'w-1.5 h-6 rounded-full flex-shrink-0 opacity-80 ' + a.bg}></div><div><p class="text-xs text-slate-300 font-medium">${a.nome} (${Math.round(a.pct * 100)}%)</p></div></div><span class=${'font-bold text-sm flex-shrink-0 ' + a.cor}>${showValues ? 'R$ ' + fmtBRL(bruto) : 'R$ ••••'}</span></div><div class="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class=${'h-full rounded-full progress-fill ' + a.bg} style=${`width: ${a.pct * 100}%`}></div></div></div>`; })}<p class="text-[9px] text-slate-600 text-center pt-1">Projeção RF com Selic ${selic.toFixed(1)}% a.a. ${selicIsLive ? ' (ao vivo)' : ' (média)'}</p></div>`;
     }
-    function OportunidadeCard({ op, isOpen, onToggle }) {
-      const bdrCls  = isOpen ? 'border-[#34d399]/40' : 'border-slate-800';
-      const cardCls = 'bg-[#1a2233] rounded-2xl border transition-all duration-300 card-glow overflow-hidden ' + bdrCls;
-      const bodyCls = isOpen ? 'accordion-body open' : 'accordion-body';
-      const svgCls  = 'w-4 h-4 text-slate-500 transition-transform duration-300 flex-shrink-0 ' + (isOpen ? 'rotate-180' : '');
+    function MonetizationBanner() { return html`<div class="banner-glow rounded-2xl p-4 text-center space-y-1.5"><p class="text-xs text-slate-200 font-medium">🚀 Quer multiplicar suas moedas?</p><p class="text-xs text-slate-400">Abra sua conta na corretora parceira com <strong class="text-[#34d399]">taxa zero</strong>!</p><a href="https://www.xpi.com.br/" target="_blank" rel="noopener noreferrer" class="inline-block mt-1 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-[10px] font-bold py-1.5 px-5 rounded-full">Conhecer agora</a></div>`; }
+    function WhatsAppButton() { const url = encodeURIComponent('Descobri esse app gratuito que ajuda a planejar investimentos: https://minhas-moedinhas.vercel.app/'); return html`<a href="https://api.whatsapp.com/send?text=${url}" target="_blank" class="whatsapp-btn flex items-center gap-1.5 text-xs text-slate-300 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 rounded-full px-3 py-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-[#25D366]"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Ajudar um amigo</a>`; }
+    function Badge({ emoji, label, active }) { const cls = active ? 'badge-on badge-pulse' : 'badge-off'; return html`<div class="flex flex-col items-center gap-1 ${cls}"><span class="text-2xl">${emoji}</span><span class="text-[8px] text-slate-400 font-medium">${label}</span></div>`; }
+    function Conquistas({ hasAporte, perfilChanged, hasHighAporte }) { return html`<div class="bg-[#1a2233] p-3 rounded-2xl border border-slate-800 shadow-xl"><div class="flex justify-between items-center px-2"><span class="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Minhas Conquistas</span></div><div class="flex justify-around mt-2"><${Badge} emoji="🪙" label="Primeiro Passo" active=${hasAporte} /><${Badge} emoji="🧠" label="Perfil Definido" active=${perfilChanged} /><${Badge} emoji="🚀" label="Poupador" active=${hasHighAporte} /></div></div>`; }
 
-      return html`
-        <div class=${cardCls}>
-          <button class="w-full flex items-center justify-between p-4 text-left" onClick=${onToggle} aria-expanded=${isOpen}>
-            <div class="flex items-center gap-3">
-              <span class="text-2xl leading-none">${op.emoji}</span>
-              <div>
-                <p class="text-sm font-bold text-slate-100">${op.titulo}</p>
-                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block ' + op.tagColor}>
-                  ${op.subtitulo}
-                </span>
-              </div>
-            </div>
-            <svg class=${svgCls} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-          <div class=${bodyCls}>
-            <div class="px-4 pb-4 space-y-3">
-              <div class="h-px bg-slate-700/50"></div>
-              <p class="text-xs text-slate-300 leading-relaxed">${op.descricao}</p>
-              <div class="bg-[#0d1117]/60 rounded-xl p-3 border border-slate-700/40">
-                <p class="text-[10px] text-slate-500 uppercase tracking-wide font-semibold mb-1">Por que considerar?</p>
-                <p class="text-xs text-[#34d399] font-medium">${op.destaque}</p>
-              </div>
-              <a
-                href=${op.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick=${function(e) { e.stopPropagation(); }}
-                class="flex items-center justify-center gap-2 w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-3 rounded-xl transition-colors duration-200"
-              >
-                ${op.cta}
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                </svg>
-              </a>
-              <p class="text-[9px] text-slate-600 text-center">Link de parceiro. Analise sempre antes de investir.</p>
-            </div>
-          </div>
-        </div>`;
-    }
-    function OnboardingModal({ onComplete }) {
-      const [step, setStep] = useState(1);
-
-      function nextStep() {
-        if (step === 1) {
-          setStep(2);
-        } else {
-          onComplete();
-        }
-      }
-
-      return html`
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay">
-          <div class="bg-[#1a2233] rounded-2xl border border-slate-700/60 shadow-2xl max-w-sm w-full p-6 modal-card space-y-5">
-            ${step === 1 ? html`
-              <div class="text-center space-y-3">
-                <div class="flex justify-center text-4xl">💡</div>
-                <h2 class="text-xl font-extrabold text-[#34d399]">O que é o Minhas Moedinhas?</h2>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                  Um aplicativo simples e gratuito que te ajuda a <strong class="text-[#34d399]">multiplicar seu dinheiro</strong> sem complicações.
-                  Aqui, <strong class="text-slate-100">cada R$ 5,00 poupado importa</strong> — porque todo começo é um passo gigante para sua liberdade financeira.
-                </p>
-                <div class="flex justify-center pt-2">
-                  <button
-                    onClick=${nextStep}
-                    class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm transition-all"
-                  >
-                    Entendi! →
-                  </button>
-                </div>
-              </div>
-            ` : html`
-              <div class="text-center space-y-3">
-                <div class="flex justify-center text-4xl">🚀</div>
-                <h2 class="text-xl font-extrabold text-[#34d399]">Como funciona?</h2>
-                <div class="space-y-3 text-sm text-slate-300 leading-relaxed">
-                  <p>
-                    <span class="text-[#34d399] font-bold">1.</span> Digite quanto você pode guardar por mês.
-                  </p>
-                  <p>
-                    <span class="text-[#34d399] font-bold">2.</span> Escolha seu perfil de investidor (ou deixe a gente sugerir).
-                  </p>
-                  <p>
-                    <span class="text-[#34d399] font-bold">3.</span> Veja como seu dinheiro pode crescer e receba as melhores indicações.
-                  </p>
-                </div>
-                <div class="flex justify-center pt-2">
-                  <button
-                    onClick=${nextStep}
-                    class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm transition-all"
-                  >
-                    Entrar no Painel e Começar
-                  </button>
-                </div>
-              </div>
-            `}
-          </div>
-        </div>`;
-    }
-    function MonetizationBanner() {
-      return html`
-        <div class="banner-glow rounded-2xl p-4 text-center space-y-1.5">
-          <p class="text-xs text-slate-200 font-medium">
-            🚀 Quer multiplicar suas moedas de verdade?
-          </p>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            Abra sua conta gratuita na corretora parceira através do nosso link e comece com <strong class="text-[#34d399]">taxa zero</strong>!
-          </p>
-          <a
-            href="https://www.xpi.com.br/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-block mt-1 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-[10px] font-bold py-1.5 px-5 rounded-full transition-colors"
-          >
-            Conhecer agora
-          </a>
-        </div>`;
-    }
-    function WhatsAppButton() {
-      const url = encodeURIComponent(
-        'Descobri esse app gratuito que ajuda a planejar investimentos e poupar dinheiro de um jeito muito simples! Dá uma olhada: https://minhas-moedinhas.vercel.app/'
-      );
-      return html`
-        <a
-          href="https://api.whatsapp.com/send?text=${url}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="whatsapp-btn flex items-center gap-1.5 text-xs text-slate-300 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/30 rounded-full px-3 py-1.5 transition-all"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="text-[#25D366]">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
-          Ajudar um amigo a poupar
-        </a>`;
-    }
-    function Badge({ emoji, label, active, description }) {
-      const cls = active ? 'badge-on badge-pulse' : 'badge-off';
-      return html`
-        <div class="flex flex-col items-center gap-1 ${cls}" title=${description}>
-          <span class="text-2xl">${emoji}</span>
-          <span class="text-[8px] text-slate-400 font-medium">${label}</span>
-        </div>`;
-    }
-    function Conquistas({ hasAporte, perfilChanged, hasHighAporte }) {
-      return html`
-        <div class="bg-[#1a2233] p-3 rounded-2xl border border-slate-800 shadow-xl">
-          <div class="flex justify-between items-center px-2">
-            <span class="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">Minhas Conquistas</span>
-            <span class="text-[8px] text-slate-600">Desbloqueie medalhas</span>
-          </div>
-          <div class="flex justify-around mt-2">
-            <${Badge} emoji="🪙" label="Primeiro Passo" active=${hasAporte} description="Aporte simulado maior que R$ 0" />
-            <${Badge} emoji="🧠" label="Perfil Definido" active=${perfilChanged} description="Você já alterou seu perfil de investimento" />
-            <${Badge} emoji="🚀" label="Poupador" active=${hasHighAporte} description="Aporte simulado acima de R$ 100" />
-          </div>
-        </div>`;
-    }
-    function SonhosCard() {
-      const [nome, setNome] = useState('');
-      const [valorTotal, setValorTotal] = useState('');
-      const [guardarMensal, setGuardarMensal] = useState('');
-      const [meses, setMeses] = useState(null);
-      const [calculado, setCalculado] = useState(false);
-
-      function calcular() {
-        const total = parseFloat(valorTotal);
-        const mensal = parseFloat(guardarMensal);
-        if (!nome.trim() || isNaN(total) || total <= 0 || isNaN(mensal) || mensal <= 0) {
-          setMeses(null);
-          setCalculado(false);
-          return;
-        }
-        const m = Math.ceil(total / mensal);
-        setMeses(m);
-        setCalculado(true);
-      }
-
-      return html`
-        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🎯</span>
-            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Meus Sonhos</h2>
-          </div>
-          <div class="space-y-2">
-            <input
-              type="text"
-              value=${nome}
-              onChange=${function(e) { setNome(e.target.value); setCalculado(false); }}
-              placeholder="Nome do sonho (ex: Trocar pneus)"
-              class="w-full px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-            />
-            <div class="flex gap-2">
-              <input
-                type="number"
-                value=${valorTotal}
-                onChange=${function(e) { setValorTotal(e.target.value); setCalculado(false); }}
-                placeholder="Valor total (R$)"
-                min="0"
-                step="any"
-                class="w-1/2 px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-              />
-              <input
-                type="number"
-                value=${guardarMensal}
-                onChange=${function(e) { setGuardarMensal(e.target.value); setCalculado(false); }}
-                placeholder="Guardar por mês (R$)"
-                min="0"
-                step="any"
-                class="w-1/2 px-3 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-              />
-            </div>
-            <button
-              onClick=${calcular}
-              class="w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold py-2 rounded-xl transition-colors"
-            >
-              Calcular tempo
-            </button>
-            ${calculado && meses !== null && html`
-              <div class="text-center text-xs text-slate-300 bg-[#0d1117]/50 p-2 rounded-xl border border-slate-700/40">
-                <p>
-                  Faltam <strong class="text-[#34d399]">${meses} ${meses === 1 ? 'mês' : 'meses'}</strong>
-                  para você realizar o sonho de <strong class="text-slate-100">${nome}</strong>!
-                  Você consegue! 💪
-                </p>
-              </div>
-            `}
-          </div>
-        </section>`;
-    }
-    function FluxoCaixa({ setValorSimulador }) {
-      const [entrou, setEntrou] = useState('');
-      const [saiu, setSaiu] = useState('');
-      const [sobra, setSobra] = useState(null);
-
-      function atualizarSobra() {
-        const e = parseFloat(entrou) || 0;
-        const s = parseFloat(saiu) || 0;
-        const diff = e - s;
-        setSobra(diff);
-        if (diff > 0) {
-          setValorSimulador(String(diff));
-        } else {
-          setValorSimulador('');
-        }
-      }
-
-      return html`
-        <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🪙</span>
-            <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Gerenciador de Moedinhas</h2>
-          </div>
-          <div class="space-y-2">
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">+</span>
-                <input
-                  type="number"
-                  value=${entrou}
-                  onChange=${function(e) { setEntrou(e.target.value); setSobra(null); }}
-                  placeholder="Entrou"
-                  min="0"
-                  step="any"
-                  class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-                />
-              </div>
-              <div class="relative flex-1">
-                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">-</span>
-                <input
-                  type="number"
-                  value=${saiu}
-                  onChange=${function(e) { setSaiu(e.target.value); setSobra(null); }}
-                  placeholder="Saiu"
-                  min="0"
-                  step="any"
-                  class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-                />
-              </div>
-              <button
-                onClick=${atualizarSobra}
-                class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-              >
-                Atualizar
-              </button>
-            </div>
-            ${sobra !== null && html`
-              <div class="text-center text-xs text-slate-300 bg-[#0d1117]/50 p-2 rounded-xl border border-slate-700/40">
-                <p>
-                  Sobra do mês: <strong class=${sobra >= 0 ? 'text-[#34d399]' : 'text-red-400'}>
-                    ${sobra >= 0 ? 'R$ ' + fmtBRL(sobra) : '-R$ ' + fmtBRL(Math.abs(sobra))}
-                  </strong>
-                  ${sobra > 0 ? ' 🎉' : sobra < 0 ? ' 😅' : ''}
-                </p>
-              </div>
-            `}
-          </div>
-        </section>`;
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🔐  TELA DE LOGIN (Fase 2 - Coleta de Nome e WhatsApp)
-    // ═══════════════════════════════════════════════════════════════════════════
+    /* ════════ TELA DE LOGIN (SEM FRAGMENTOS VAZIOS) ════════ */
     function LoginScreen() {
-      const [modo,    setModo]    = useState('entrar'); // 'entrar' | 'cadastrar'
-      const [nome,    setNome]    = useState('');       // Novo campo
-      const [whatsapp,setWhatsapp]= useState('');       // Novo campo
-      const [email,   setEmail]   = useState('');
-      const [senha,   setSenha]   = useState('');
-      const [erro,    setErro]    = useState('');
-      const [sucesso, setSucesso] = useState('');
-      const [loading, setLoading] = useState(false);
-
+      const [modo, setModo] = useState('entrar');
+      const [nome, setNome] = useState(''), [whatsapp, setWhatsapp] = useState(''), [email, setEmail] = useState(''), [senha, setSenha] = useState('');
+      const [erro, setErro] = useState(''), [sucesso, setSucesso] = useState(''), [loading, setLoading] = useState(false);
       function limpar() { setErro(''); setSucesso(''); }
-
-      async function handleEntrar() {
-        if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; }
-        setLoading(true); limpar();
-        const { error } = await sbClient.auth.signInWithPassword({ email, password: senha });
-        if (error) { setErro(traduzirErro(error.message)); }
-        setLoading(false);
-      }
-
-      async function handleCadastrar() {
-        if (!nome || !whatsapp || !email || !senha) {
-          setErro('Preencha todos os campos: Nome, WhatsApp, E-mail e Senha.');
-          return;
-        }
-        if (senha.length < 6) {
-          setErro('A senha precisa ter no mínimo 6 caracteres.');
-          return;
-        }
-        setLoading(true); limpar();
-        const { error } = await sbClient.auth.signUp({
-          email,
-          password: senha,
-          options: {
-            data: {
-              display_name: nome.trim(),
-              whatsapp: whatsapp.trim()
-            }
-          }
-        });
-        if (error) {
-          setErro(traduzirErro(error.message));
-        } else {
-          setSucesso('Conta criada! Verifique seu e-mail para confirmar o cadastro.');
-        }
-        setLoading(false);
-      }
-
-      async function handleGoogle() {
-        setLoading(true); limpar();
-        const { error } = await sbClient.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: window.location.origin },
-        });
-        if (error) { setErro(traduzirErro(error.message)); setLoading(false); }
-      }
-
-      function onKey(e) {
-        if (e.key !== 'Enter') return;
-        if (modo === 'entrar') handleEntrar(); else handleCadastrar();
-      }
-
-      const isCad    = modo === 'cadastrar';
-      const tabBase  = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
-      const tabAtivo = tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm';
-      const tabOff   = tabBase + 'text-slate-500 hover:text-slate-300';
-
-      return html`
-        <div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
-          <div class="w-full max-w-sm fade-up">
-
-            <!-- Marca -->
-            <div class="flex flex-col items-center mb-8 gap-3">
-              <div class="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800 flex items-center justify-center shadow-xl">
-                <${CoinLogo} size=${38} />
-              </div>
-              <div class="text-center">
-                <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
-                <p class="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p>
-              </div>
-            </div>
-
-            <!-- Card -->
-            <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
-
-              <!-- Abas Entrar / Criar Conta -->
-              <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1">
-                <button class=${!isCad ? tabAtivo : tabOff} onClick=${function() { setModo('entrar'); limpar(); }}>
-                  Entrar
-                </button>
-                <button class=${isCad ? tabAtivo : tabOff} onClick=${function() { setModo('cadastrar'); limpar(); }}>
-                  Criar Conta
-                </button>
-              </div>
-
-              <!-- Campos -->
-              <div class="space-y-3">
-                ${isCad && html`
-                  <div class="space-y-1.5 fade-up">
-                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Nome Completo</label>
-                    <input
-                      type="text"
-                      value=${nome}
-                      onChange=${function(e) { setNome(e.target.value); limpar(); }}
-                      onKeyDown=${onKey}
-                      placeholder="Seu nome completo"
-                      autocomplete="name"
-                      class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                    />
-                  </div>
-                  <div class="space-y-1.5 fade-up">
-                    <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">WhatsApp</label>
-                    <input
-                      type="tel"
-                      value=${whatsapp}
-                      onChange=${function(e) { setWhatsapp(e.target.value); limpar(); }}
-                      onKeyDown=${onKey}
-                      placeholder="(11) 99999-9999"
-                      autocomplete="tel"
-                      class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                    />
-                  </div>
-                `}
-
-                <div class="space-y-1.5">
-                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">E-mail</label>
-                  <input
-                    type="email"
-                    value=${email}
-                    onChange=${function(e) { setEmail(e.target.value); limpar(); }}
-                    onKeyDown=${onKey}
-                    placeholder="voce@email.com"
-                    autocomplete="email"
-                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                  />
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Senha</label>
-                  <input
-                    type="password"
-                    value=${senha}
-                    onChange=${function(e) { setSenha(e.target.value); limpar(); }}
-                    onKeyDown=${onKey}
-                    placeholder="••••••••"
-                    autocomplete=${isCad ? 'new-password' : 'current-password'}
-                    class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm"
-                  />
-                  ${isCad && html`<p class="text-[9px] text-slate-600 mt-0.5">Mínimo de 6 caracteres.</p>`}
-                </div>
-              </div>
-
-              <!-- Mensagem de erro -->
-              ${erro && html`
-                <div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3">
-                  <svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                  </svg>
-                  <p class="text-xs text-red-300">${erro}</p>
-                </div>`}
-
-              <!-- Mensagem de sucesso (cadastro) -->
-              ${sucesso && html`
-                <div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3">
-                  <svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <p class="text-xs text-emerald-300">${sucesso}</p>
-                </div>`}
-
-              <!-- Botão principal (Entrar / Criar conta) -->
-              <button
-                onClick=${isCad ? handleCadastrar : handleEntrar}
-                disabled=${loading}
-                class="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm"
-              >
-                ${loading
-                  ? html`<${Spinner} size="w-4 h-4" />`
-                  : isCad ? 'Criar minha conta' : 'Entrar na minha conta'
-                }
-              </button>
-
-              <!-- Separador + Google OAuth -->
-              <div class="flex items-center gap-3">
-                <div class="h-px flex-1 bg-slate-800"></div>
-                <span class="text-[10px] text-slate-600 font-medium">ou continue com</span>
-                <div class="h-px flex-1 bg-slate-800"></div>
-              </div>
-              <button
-                onClick=${handleGoogle}
-                disabled=${loading}
-                class="google-btn w-full flex items-center justify-center gap-2.5 bg-[#0d1117] border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Continuar com Google
-              </button>
-
-            </div>
-
-            <p class="text-[9px] text-slate-700 text-center mt-5 leading-relaxed">
-              Ao continuar você concorda com os termos de uso.<br/>
-              Seus dados são protegidos e nunca compartilhados.
-            </p>
+      async function handleEntrar() { if (!email || !senha) { setErro('Preencha e-mail e senha.'); return; } setLoading(true); limpar(); const { error } = await sbClient.auth.signInWithPassword({ email, password: senha }); if (error) setErro(traduzirErro(error.message)); setLoading(false); }
+      async function handleCadastrar() { if (!nome || !whatsapp || !email || !senha) { setErro('Preencha todos os campos.'); return; } if (senha.length < 6) { setErro('A senha deve ter no mínimo 6 caracteres.'); return; } setLoading(true); limpar(); const { error } = await sbClient.auth.signUp({ email, password: senha, options: { data: { display_name: nome.trim(), whatsapp: whatsapp.trim() } } }); if (error) setErro(traduzirErro(error.message)); else setSucesso('Conta criada! Verifique seu e-mail.'); setLoading(false); }
+      async function handleGoogle() { setLoading(true); limpar(); const { error } = await sbClient.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } }); if (error) { setErro(traduzirErro(error.message)); setLoading(false); } }
+      function onKey(e) { if (e.key !== 'Enter') return; modo === 'entrar' ? handleEntrar() : handleCadastrar(); }
+      const isCad = modo === 'cadastrar'; const tabBase = 'flex-1 py-2 rounded-lg text-xs font-bold transition-all ';
+      return html`<div class="min-h-screen bg-[#0d1117] flex items-center justify-center p-4"><div class="w-full max-w-sm fade-up">
+        <div class="flex flex-col items-center mb-8 gap-3"><div class="w-16 h-16 rounded-2xl bg-[#1a2233] border border-slate-800 flex items-center justify-center shadow-xl"><${CoinLogo} size=38 /></div><div class="text-center"><h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1><p class="text-xs text-slate-500 mt-1">Sua jornada para a autonomia financeira.</p></div></div>
+        <div class="bg-[#1a2233] rounded-2xl border border-slate-800 shadow-2xl p-6 space-y-4">
+          <div class="flex bg-[#0d1117]/60 p-1 rounded-xl border border-slate-800 gap-1"><button class=${!isCad ? tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm' : tabBase + 'text-slate-500 hover:text-slate-300'} onClick=${() => { setModo('entrar'); limpar(); }}>Entrar</button><button class=${isCad ? tabBase + 'bg-[#1a2233] text-[#34d399] border border-[#34d399]/30 shadow-sm' : tabBase + 'text-slate-500 hover:text-slate-300'} onClick=${() => { setModo('cadastrar'); limpar(); }}>Criar Conta</button></div>
+          <div class="space-y-3">
+            <div class=${'space-y-1.5 fade-up ' + (isCad ? '' : 'hidden')}><label class="text-[10px] text-slate-500 font-semibold uppercase">Nome Completo</label><input type="text" value=${nome} onChange=${e => { setNome(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="Seu nome completo" autocomplete="name" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
+            <div class=${'space-y-1.5 fade-up ' + (isCad ? '' : 'hidden')}><label class="text-[10px] text-slate-500 font-semibold uppercase">WhatsApp</label><input type="tel" value=${whatsapp} onChange=${e => { setWhatsapp(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="(11) 99999-9999" autocomplete="tel" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
+            <div class="space-y-1.5"><label class="text-[10px] text-slate-500 font-semibold uppercase">E-mail</label><input type="email" value=${email} onChange=${e => { setEmail(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="voce@email.com" autocomplete="email" class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /></div>
+            <div class="space-y-1.5"><label class="text-[10px] text-slate-500 font-semibold uppercase">Senha</label><input type="password" value=${senha} onChange=${e => { setSenha(e.target.value); limpar(); }} onKeyDown=${onKey} placeholder="••••••••" autocomplete=${isCad ? 'new-password' : 'current-password'} class="auth-input w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm" /><p class=${'text-[9px] text-slate-600 mt-0.5 ' + (isCad ? '' : 'hidden')}>Mínimo de 6 caracteres.</p></div>
           </div>
-        </div>`;
+          ${erro ? html`<div class="flex items-start gap-2 bg-red-950/50 border border-red-800/50 rounded-xl px-3.5 py-3"><svg class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg><p class="text-xs text-red-300">${erro}</p></div>` : null}${sucesso ? html`<div class="flex items-start gap-2 bg-emerald-950/50 border border-emerald-800/50 rounded-xl px-3.5 py-3"><svg class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><p class="text-xs text-emerald-300">${sucesso}</p></div>` : null}
+          <button onClick=${isCad ? handleCadastrar : handleEntrar} disabled=${loading} class="auth-btn w-full flex items-center justify-center gap-2 bg-[#34d399] hover:bg-[#6ee7b7] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl text-sm">${loading ? html`<${Spinner} size="w-4 h-4" />` : isCad ? 'Criar minha conta' : 'Entrar na minha conta'}</button>
+          <div class="flex items-center gap-3"><div class="h-px flex-1 bg-slate-800"></div><span class="text-[10px] text-slate-600 font-medium">ou continue com</span><div class="h-px flex-1 bg-slate-800"></div></div>
+          <button onClick=${handleGoogle} disabled=${loading} class="google-btn w-full flex items-center justify-center gap-2.5 bg-[#0d1117] border border-slate-700 text-slate-200 font-semibold py-3 rounded-xl text-sm disabled:opacity-50"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>Continuar com Google</button>
+        </div><p class="text-[9px] text-slate-700 text-center mt-5">Ao continuar você concorda com os termos de uso.</p>
+      </div></div>`;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🏠  DASHBOARD PRINCIPAL (Layout Reorganizado)
-    // ═══════════════════════════════════════════════════════════════════════════
+    /* ════════ DASHBOARD PRINCIPAL ════════ */
     function MainApp({ user }) {
-      const [valor,        setValor]        = useState('');
-      const [resultado,    setResultado]    = useState(null);
-      const [perfil,       setPerfil]       = useState('moderado');
+      const [valor, setValor] = useState('');
+      const [resultado, setResultado] = useState(null);
+      const [perfil, setPerfil] = useState('moderado');
       const [perfilChanged, setPerfilChanged] = useState(false);
-      const [openCard,     setOpenCard]     = useState(null);
-      const [selic,        setSelic]        = useState(SELIC_FALLBACK);
-      const [selicIsLive,  setSelicIsLive]  = useState(false);
+      const [selic, setSelic] = useState(SELIC_FALLBACK);
+      const [selicIsLive, setSelicIsLive] = useState(false);
       const [selicLoading, setSelicLoading] = useState(true);
-      const [dbReady,      setDbReady]      = useState(false);
-      const [saving,       setSaving]       = useState(false);
-      const [showValues,   setShowValues]   = useState(true);
-
+      const [dbReady, setDbReady] = useState(false);
+      const [saving, setSaving] = useState(false);
+      const [showValues, setShowValues] = useState(true);
+      const [transacoes, setTransacoes] = useState([]);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalDesc, setModalDesc] = useState(''), [modalValor, setModalValor] = useState(''), [modalTipo, setModalTipo] = useState('entrada'), [modalLoading, setModalLoading] = useState(false);
       const tickers = useTickersSimulados();
 
-      // ── Carrega portfolio ao montar ───────────────────────────────────────
-      useEffect(function() {
-        (async function() {
-          const data = await dbLoad(user.id);
-          if (data.perfil && PERFIS[data.perfil]) setPerfil(data.perfil);
-          if (data.aporte !== null && !isNaN(data.aporte) && data.aporte > 0) {
-            setValor(String(data.aporte));
-            setResultado(data.aporte);
-          }
-          setDbReady(true);
-        })();
-      }, [user.id]);
+      useEffect(() => { (async () => { const data = await dbLoad(user.id); if (data.perfil && PERFIS[data.perfil]) setPerfil(data.perfil); if (data.aporte > 0) { setValor(String(data.aporte)); setResultado(data.aporte); } setTransacoes(await carregarTransacoes(user.id)); setDbReady(true); })(); }, [user.id]);
+      useEffect(() => { const ctrl = new AbortController(); const tid = setTimeout(() => ctrl.abort(), 5000); (async () => { try { const res = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json', { signal: ctrl.signal }); if (!res.ok) throw new Error(); const json = await res.json(); const d = parseFloat(json[0]?.valor); if (!isNaN(d)) { setSelic(parseFloat(((Math.pow(1 + d / 100, 252) - 1) * 100).toFixed(2))); setSelicIsLive(true); } } catch { setSelic(SELIC_FALLBACK); } finally { clearTimeout(tid); setSelicLoading(false); } })(); return () => { ctrl.abort(); clearTimeout(tid); }; }, []);
+      const calcular = useCallback(async () => { const v = parseFloat(valor); if (isNaN(v) || v <= 0) return; setResultado(v); setSaving(true); await dbSave(user.id, v, perfil); setSaving(false); }, [valor, perfil, user.id]);
+      async function handlePerfilChange(key) { setPerfil(key); setPerfilChanged(true); const v = parseFloat(valor); setSaving(true); await dbSave(user.id, isNaN(v) ? null : v, key); setSaving(false); }
+      async function handleNovaTransacao(e) { e.preventDefault(); if (!modalDesc.trim() || !modalValor || parseFloat(modalValor) <= 0) return; setModalLoading(true); try { await salvarTransacao(user.id, modalDesc, modalValor, modalTipo); setTransacoes(await carregarTransacoes(user.id)); setModalOpen(false); setModalDesc(''); setModalValor(''); setModalTipo('entrada'); } catch (err) { alert('Erro: ' + err.message); } setModalLoading(false); }
+      async function handleDeletarTransacao(id) { if (!confirm('Remover?')) return; try { await deletarTransacao(id); setTransacoes(await carregarTransacoes(user.id)); } catch (err) { alert('Erro: ' + err.message); } }
 
-      // ── Selic ao vivo ─────────────────────────────────────────────────────
-      useEffect(function() {
-        var ctrl = new AbortController();
-        var tid  = setTimeout(function() { ctrl.abort(); }, 5000);
-        (async function() {
-          try {
-            var res  = await fetch(
-              'https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json',
-              { signal: ctrl.signal }
-            );
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            var json = await res.json();
-            var d = parseFloat(json[0]?.valor);
-            if (isNaN(d)) throw new Error('inválido');
-            setSelic(parseFloat(((Math.pow(1 + d / 100, 252) - 1) * 100).toFixed(2)));
-            setSelicIsLive(true);
-          } catch (_) {
-            setSelic(SELIC_FALLBACK);
-            setSelicIsLive(false);
-          } finally {
-            clearTimeout(tid);
-            setSelicLoading(false);
-          }
-        })();
-        return function() { ctrl.abort(); clearTimeout(tid); };
-      }, []);
-
-      // ── Simular ───────────────────────────────────────────────────────────
-      var calcular = useCallback(async function() {
-        var v = parseFloat(valor);
-        if (isNaN(v) || v <= 0) return;
-        setResultado(v);
-        setSaving(true);
-        await dbSave(user.id, v, perfil);
-        setSaving(false);
-      }, [valor, perfil, user.id]);
-
-      // ── Mudar perfil ──────────────────────────────────────────────────────
-      async function handlePerfilChange(key) {
-        setPerfil(key);
-        setPerfilChanged(true);
-        var v = parseFloat(valor);
-        setSaving(true);
-        await dbSave(user.id, isNaN(v) ? null : v, key);
-        setSaving(false);
-      }
-
-      function handleKeyDown(e) { if (e.key === 'Enter') calcular(); }
-      function toggleCard(id)   { setOpenCard(function(p) { return p === id ? null : id; }); }
-
-      // Loading do DB
-      if (!dbReady) {
-        return html`
-          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
-            <${Spinner} size="w-7 h-7" />
-            <p class="text-xs text-slate-500">Carregando sua carteira…</p>
-          </div>`;
-      }
-
-      var emailCurto = user.email ? user.email.split('@')[0] : 'investidor';
-      var hasAporte = resultado !== null && resultado > 0;
-      var hasHighAporte = resultado !== null && resultado > 100;
+      if (!dbReady) return html`<div class="min-h-screen flex items-center justify-center gap-3 bg-[#0d1117]"><${Spinner} size="w-7 h-7" /><p class="text-xs text-slate-500">Carregando…</p></div>`;
+      const totalEntradas = transacoes.filter(t => t.tipo === 'entrada').reduce((acc, t) => acc + t.valor, 0);
+      const totalSaidas = transacoes.filter(t => t.tipo === 'saida').reduce((acc, t) => acc + t.valor, 0);
+      const saldoAtual = totalEntradas - totalSaidas;
+      const primeiroNome = (user?.user_metadata?.display_name || user?.user_metadata?.name || user?.email || 'investidor').split(' ')[0];
+      const hasAporte = resultado !== null && resultado > 0; const hasHighAporte = resultado !== null && resultado > 100;
 
       return html`
         <div class="max-w-md mx-auto p-4 min-h-screen flex flex-col space-y-5 pb-10 fade-up">
-
-          <!-- HEADER -->
-          <header class="pt-5 flex flex-col gap-2">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2">
-                  <${CoinLogo} size=${26} />
-                  <h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1>
-                </div>
-                <p class="text-xs text-slate-500 mt-1 ml-8 truncate">Olá, ${emailCurto} 👋</p>
-              </div>
-              <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                <div class="flex items-center gap-2">
-                  <button
-                    onClick=${function() { setShowValues(!showValues); }}
-                    class="text-slate-400 hover:text-[#34d399] transition-colors p-1.5 rounded-full hover:bg-slate-800/50"
-                    aria-label=${showValues ? 'Ocultar valores' : 'Mostrar valores'}
-                  >
-                    ${showValues ? '👁️' : '🙈'}
-                  </button>
-                  <${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} />
-                </div>
-                <button
-                  onClick=${function() { sbClient.auth.signOut(); }}
-                  class="signout-btn flex items-center gap-1 text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/80"
-                >
-                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
-                  </svg>
-                  Sair
-                </button>
-              </div>
-            </div>
-            <${TickersBar} tickers=${tickers} />
-          </header>
-
-          <!-- 1. CARDS DE SALDO (CÁLCULO DO SUPABASE) -->
+          <header class="pt-5 flex flex-col gap-2"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="flex items-center gap-2"><${CoinLogo} size=26 /><h1 class="text-2xl font-extrabold text-[#34d399] tracking-tight">Minhas Moedinhas</h1></div><p class="text-xs text-slate-500 mt-1 ml-8 truncate">Olá, ${primeiroNome} 👋</p></div><div class="flex flex-col items-end gap-1.5 flex-shrink-0"><div class="flex items-center gap-2"><button onClick=${() => setShowValues(!showValues)} class="text-slate-400 hover:text-[#34d399] transition-colors p-1.5 rounded-full hover:bg-slate-800/50">${showValues ? '👁️' : '🙈'}</button><${SelicBadge} selic=${selic} isLive=${selicIsLive} loading=${selicLoading} /></div><button onClick=${() => sbClient.auth.signOut()} class="signout-btn flex items-center gap-1 text-[10px] text-slate-600 px-2.5 py-1 rounded-full border border-slate-800/80"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>Sair</button></div></div><${TickersBar} tickers=${tickers} /></header>
+          
+          <!-- 1. CARDS DE SALDO -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-            ${[
-              { label: 'Saldo Atual', valor: 0, cor: '#34d399', icon: '💰' },
-              { label: 'Entradas', valor: 0, cor: '#60a5fa', icon: '↑' },
-              { label: 'Saídas', valor: 0, cor: '#f87171', icon: '↓' }
-            ].map(c => html`
-              <div key=${c.label} class="bg-[#1a2233] border border-slate-800 rounded-2xl p-5 text-left hover:border-slate-700 transition-colors shadow-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">${c.label}</span>
-                  <span class="text-lg">${c.icon}</span>
-                </div>
-                <p class="text-2xl font-extrabold" style=${{ color: c.cor }}>R$ 0,00</p>
-                <p class="text-[10px] text-slate-600 mt-1">Nenhum lançamento ainda</p>
-              </div>
-            `)}
+            ${[{ label: 'Saldo Atual', cor: '#34d399', icon: '💰' }, { label: 'Entradas', cor: '#60a5fa', icon: '↑' }, { label: 'Saídas', cor: '#f87171', icon: '↓' }].map(c => {
+              const val = c.label === 'Saldo Atual' ? saldoAtual : (c.label === 'Entradas' ? totalEntradas : totalSaidas);
+              return html`<div key=${c.label} class="bg-[#1a2233] border border-slate-800 rounded-2xl p-5 text-left hover:border-slate-700 transition-colors shadow-lg"><div class="flex items-center justify-between mb-3"><span class="text-xs text-slate-500 font-semibold uppercase tracking-wider">${c.label}</span><span class="text-lg">${c.icon}</span></div><p class="text-2xl font-extrabold" style=${{ color: c.cor }}>${val >= 0 ? 'R$ ' + fmtBRL(val) : '-R$ ' + fmtBRL(Math.abs(val))}</p></div>`;
+            })}
           </div>
 
-          <!-- 2. SIMULADOR E NOVO GRÁFICO DE LINHAS -->
-          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4">
-            <div class="flex items-center justify-between">
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Simulador de Aporte</h2>
-              <div class="flex items-center gap-2">
-                ${saving && html`<${Spinner} size="w-3 h-3" />`}
-                ${!selicLoading && html`<span class="text-[9px] text-slate-600">Selic ${selic.toFixed(1)}% a.a.</span>`}
-              </div>
-            </div>
-
+          <!-- 2. SIMULADOR + NOVO GRÁFICO DE LINHAS -->
+          <section class="bg-[#1a2233] p-5 rounded-2xl border border-slate-800 shadow-xl space-y-4"><div class="flex items-center justify-between"><h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Simulador de Aporte</h2><div class="flex items-center gap-2">${saving && html`<${Spinner} size="w-3 h-3" />`}${!selicLoading && html`<span class="text-[9px] text-slate-600">Selic ${selic.toFixed(1)}% a.a.</span>`}</div></div>
             <${PerfilSelector} perfil=${perfil} onChange=${handlePerfilChange} />
-
-            <div class="flex gap-2">
-              <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold select-none">R$</span>
-                <input
-                  type="number"
-                  value=${valor}
-                  onChange=${function(e) { setValor(e.target.value); }}
-                  onKeyDown=${handleKeyDown}
-                  placeholder="0,00"
-                  min="0"
-                  step="any"
-                  class="w-full pl-10 pr-3 py-3 bg-[#0d1117] rounded-xl border border-slate-700 focus:outline-none focus:border-[#34d399] text-slate-100 placeholder-slate-600 text-sm transition-colors"
-                />
-              </div>
-              <button onClick=${calcular} class="sim-btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 px-5 rounded-xl font-bold text-sm">
-                Simular
-              </button>
-            </div>
-
-            ${resultado !== null && html`
-              <${ResultadoAlocacao}
-                resultado=${resultado}
-                perfil=${perfil}
-                selic=${selic}
-                selicIsLive=${selicIsLive}
-                selicLoading=${selicLoading}
-                showValues=${showValues}
-              />`}
-          </section>
-
-          <!-- GRÁFICO DE LINHAS (Substituindo as barras) -->
+            <div class="flex gap-2"><div class="relative flex-1"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-semibold select-none">R$</span><input type="number" value=${valor} onChange=${e => setValor(e.target.value)} onKeyDown=${e => e.key === 'Enter' && calcular()} placeholder="0,00" min="0" class="w-full pl-10 pr-3 py-3 bg-[#0d1117] rounded-xl border border-slate-700 focus:border-[#34d399] text-slate-100 placeholder-slate-600 text-sm" /></div><button onClick=${calcular} class="sim-btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 px-5 rounded-xl font-bold text-sm">Simular</button></div>
+            ${resultado !== null && html`<${ResultadoAlocacao} resultado=${resultado} perfil=${perfil} selic=${selic} selicIsLive=${selicIsLive} selicLoading=${selicLoading} showValues=${showValues} />`}</section>
+          
           <${GraficoLinhas} resultado=${resultado} perfil=${perfil} selic=${selic} />
-
           <${MonetizationBanner} />
 
-          <!-- 3. MINHAS CONQUISTAS -->
+          <!-- 3. CONQUISTAS -->
           <${Conquistas} hasAporte=${hasAporte} perfilChanged=${perfilChanged} hasHighAporte=${hasHighAporte} />
 
-          <!-- 4. TOP 3 OPORTUNIDADES (MOVIDO PARA CÁ) -->
-          <section class="space-y-3">
-            <div class="flex items-center justify-between px-1">
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">🔥 Top 3 Oportunidades</h2>
-              <span class="text-[9px] text-slate-600">Clique para saber mais</span>
+          <!-- 4. TOP 3 OPORTUNIDADES -->
+          <section class="space-y-2"><div class="flex items-center justify-between px-1"><h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">🔥 Top 3 Oportunidades</h2></div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">${PERFIS[perfil].oportunidades.map(op => html`
+              <div key=${op.id} class="bg-[#1a2233] p-3 rounded-2xl border border-slate-800 card-glow hover:border-[#34d399]/30 transition-all flex flex-col gap-1.5 text-center">
+                <span class="text-2xl">${op.emoji}</span><p class="text-xs font-bold text-slate-100">${op.titulo}</p>
+                <span class=${'text-[10px] px-2 py-0.5 rounded-full font-medium inline-block mx-auto ' + op.tagColor}>${op.tag}</span>
+                <p class="text-[8px] text-slate-400 mt-1 line-clamp-2">${op.desc}</p>
+              </div>`)}
             </div>
-            ${PERFIS[perfil].oportunidades.map(function(op) {
-              return html`
-                <${OportunidadeCard}
-                  key=${op.id}
-                  op=${op}
-                  isOpen=${openCard === op.id}
-                  onToggle=${function() { toggleCard(op.id); }}
-                />`;
-            })}
           </section>
 
           <!-- 5. GERENCIADOR DE MOEDINHAS -->
-          <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
-            <div class="flex items-center gap-2">
-              <span class="text-lg">🪙</span>
-              <h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Gerenciador de Moedinhas</h2>
-            </div>
-            <div class="space-y-2">
-              <div class="flex gap-2">
-                <div class="relative flex-1">
-                  <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">+</span>
-                  <input
-                    type="number"
-                    value=""
-                    placeholder="Entrou"
-                    min="0"
-                    step="any"
-                    class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-                  />
-                </div>
-                <div class="relative flex-1">
-                  <span class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] select-none">-</span>
-                  <input
-                    type="number"
-                    value=""
-                    placeholder="Saiu"
-                    min="0"
-                    step="any"
-                    class="w-full pl-6 pr-2 py-2 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-xs"
-                  />
-                </div>
-                <button class="bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition-colors">
-                  Atualizar
-                </button>
-              </div>
-            </div>
+          <section class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3"><div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="text-lg">🪙</span><h2 class="text-xs font-semibold text-[#818cf8] uppercase tracking-wider">Gerenciador de Moedinhas</h2></div><button onClick=${() => setModalOpen(true)} class="auth-btn flex items-center gap-1.5 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo Lançamento</button></div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">${transacoes.length === 0 ? html`<p class="text-center text-xs text-slate-600 py-4">Nenhum lançamento ainda.</p>` : transacoes.map(t => html`<div key=${t.id} class="flex items-center justify-between bg-[#0d1117]/70 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors"><div class="flex items-center gap-3 min-w-0"><span class=${t.tipo === 'entrada' ? 'text-emerald-400 text-lg' : 'text-red-400 text-lg'}>${t.tipo === 'entrada' ? '📈' : '📉'}</span><div class="min-w-0"><p class="text-sm font-medium text-slate-200 truncate">${t.descricao}</p><p class="text-[10px] text-slate-500">${new Date(t.created_at).toLocaleDateString('pt-BR')}</p></div></div><div class="flex items-center gap-3 flex-shrink-0"><span class=${'font-bold text-sm ' + (t.tipo === 'entrada' ? 'text-emerald-400' : 'text-red-400')}>${t.tipo === 'entrada' ? '+ ' : '- '}R$ ${fmtBRL(t.valor)}</span><button onClick=${() => handleDeletarTransacao(t.id)} class="text-slate-600 hover:text-red-400 transition-colors"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>`)}</div>
           </section>
-
-          <!-- FOOTER -->
-          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-2">
-            <div class="flex justify-center">
-              <${WhatsAppButton} />
-            </div>
-            <p class="text-[9px] text-slate-600 leading-relaxed max-w-xs mx-auto">
-              <strong class="text-slate-500">Aviso Legal:</strong> O <em>Minhas Moedinhas</em> é uma ferramenta educativa e não configura recomendação de investimento. Rentabilidade passada não garante retorno futuro.
-            </p>
-            <p class="text-[8px] text-slate-700">© 2026 Minhas Moedinhas · Feito com 💚 no Brasil</p>
-          </footer>
-        </div>`;
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🏗️  ROOT
-    // ═══════════════════════════════════════════════════════════════════════════
-    function Root() {
-      var [user,      setUser]      = useState(null);
-      var [authReady, setAuthReady] = useState(false);
-      var [onboardingSeen, setOnboardingSeen] = useState(false);
-
-      useEffect(function() {
-        const seen = localStorage.getItem('onboarding_visto') === 'true';
-        setOnboardingSeen(seen);
-
-        sbClient.auth.getSession().then(function(res) {
-          setUser(res.data?.session?.user ?? false);
-          setAuthReady(true);
-        });
-
-        var sub = sbClient.auth.onAuthStateChange(function(_event, session) {
-          setUser(session?.user ?? false);
-          setAuthReady(true);
-        });
-
-        return function() {
-          var subscription = sub?.data?.subscription ?? sub;
-          if (subscription && typeof subscription.unsubscribe === 'function') {
-            subscription.unsubscribe();
-          }
-        };
-      }, []);
-
-      function handleOnboardingComplete() {
-        localStorage.setItem('onboarding_visto', 'true');
-        setOnboardingSeen(true);
-      }
-
-      if (!authReady) {
-        return html`
-          <div class="min-h-screen flex flex-col items-center justify-center gap-3 bg-[#0d1117]">
-            <${Spinner} size="w-8 h-8" />
-            <p class="text-xs text-slate-500">Carregando…</p>
-          </div>`;
-      }
-
-      if (!user) return html`<${LoginScreen} />`;
-
-      return html`
-        <${MainApp} user=${user} onboardingSeen=${onboardingSeen} setOnboardingSeen=${setOnboardingSeen} />
-        ${!onboardingSeen && html`<${OnboardingModal} onComplete=${handleOnboardingComplete} />`}
+          <footer class="pt-4 text-center border-t border-slate-800/60 space-y-2"><div class="flex justify-center"><${WhatsAppButton} /></div><p class="text-[9px] text-slate-600 max-w-xs mx-auto"><strong class="text-slate-500">Aviso Legal:</strong> Ferramenta educativa, não recomendação.</p><p class="text-[8px] text-slate-700">© 2026 Minhas Moedinhas</p></footer>
+        </div>
+        
+        ${modalOpen && html`<div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" onClick=${e => { if (e.target === e.currentTarget) setModalOpen(false); }}><div class="bg-[#1a2233] rounded-2xl border border-slate-700/60 shadow-2xl max-w-sm w-full p-6 modal-card space-y-4"><div class="flex items-center justify-between"><h2 class="text-lg font-bold text-[#34d399]">Novo Lançamento</h2><button onClick=${() => setModalOpen(false)} class="text-slate-500 hover:text-slate-300"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div><form onSubmit=${handleNovaTransacao} class="space-y-3"><div><label class="text-[10px] text-slate-500 font-semibold uppercase">Descrição</label><input type="text" value=${modalDesc} onChange=${e => setModalDesc(e.target.value)} placeholder="Ex: Salário" class="w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm focus:border-[#34d399]" required /></div><div><label class="text-[10px] text-slate-500 font-semibold uppercase">Valor (R$)</label><input type="number" value=${modalValor} onChange=${e => setModalValor(e.target.value)} placeholder="0,00" min="0.01" step="0.01" class="w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-600 text-sm focus:border-[#34d399]" required /></div><div><label class="text-[10px] text-slate-500 font-semibold uppercase">Tipo</label><div class="flex gap-4 mt-1"><label class="flex items-center gap-2 text-xs text-slate-300"><input type="radio" name="tipo" value="entrada" checked=${modalTipo === 'entrada'} onChange=${() => setModalTipo('entrada')} class="accent-[#34d399] w-4 h-4" /> Entrada</label><label class="flex items-center gap-2 text-xs text-slate-300"><input type="radio" name="tipo" value="saida" checked=${modalTipo === 'saida'} onChange=${() => setModalTipo('saida')} class="accent-[#f87171] w-4 h-4" /> Saída</label></div></div><button type="submit" disabled=${modalLoading} class="w-full auth-btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-3 rounded-xl text-sm disabled:opacity-60 flex items-center justify-center gap-2">${modalLoading ? html`<${Spinner} size="w-4 h-4" />Salvando...` : 'Salvar Lançamento'}</button></form></div></div>`}
       `;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // 🚀  INICIALIZAÇÃO DO REACT
-    // ═══════════════════════════════════════════════════════════════════════════
+    /* ════════ ROOT ════════ */
+    function Root() {
+      const [user, setUser] = useState(null), [authReady, setAuthReady] = useState(false), [onboardingSeen, setOnboardingSeen] = useState(false);
+      useEffect(() => {
+        setOnboardingSeen(localStorage.getItem('onboarding_visto') === 'true');
+        sbClient.auth.getSession().then(res => { setUser(res.data?.session?.user ?? false); setAuthReady(true); });
+        const { data: { subscription } } = sbClient.auth.onAuthStateChange((_, session) => { setUser(session?.user ?? false); setAuthReady(true); });
+        return () => { subscription.unsubscribe(); };
+      }, []);
+      if (!authReady) return html`<div class="min-h-screen flex items-center justify-center gap-3 bg-[#0d1117]"><${Spinner} size="w-8 h-8" /><p class="text-xs text-slate-500">Carregando…</p></div>`;
+      if (!user) return html`<${LoginScreen} />`;
+      return html`<${MainApp} user=${user} />${!onboardingSeen && html`<${OnboardingModal} onComplete=${() => { localStorage.setItem('onboarding_visto', 'true'); setOnboardingSeen(true); }} />`}`;
+    }
+
     ReactDOM.createRoot(document.getElementById('root')).render(html`<${Root} />`);
   </script>
-
-  <!-- Vercel Web Analytics -->
-  <script>
-    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-  </script>
-  <script defer src="/_vercel/insights/script.js"></script>
-
 </body>
 </html>
