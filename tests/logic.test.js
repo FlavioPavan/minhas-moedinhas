@@ -15,7 +15,7 @@ const ctx = {
 };
 ctx.window = ctx; ctx.window.supabase = undefined;
 vm.createContext(ctx); vm.runInContext(code, ctx);
-const { parseValor, projetarAportes, evolucaoPatrimonio, anualParaMensal, PERFIS } = ctx.__MM__;
+const { parseValor, projetarAportes, evolucaoPatrimonio, anualParaMensal, mesesAte, aporteNecessario, sugestaoParaMeta, PERFIS } = ctx.__MM__;
 
 // parseValor: formatos brasileiros e internacionais
 assert.strictEqual(parseValor('150'), 150);
@@ -54,4 +54,30 @@ const tx = [
 const ev = evolucaoPatrimonio(tx, 6, hoje);
 assert.strictEqual(JSON.stringify(ev.map(e => e.rotulo)), JSON.stringify(['Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov']));
 assert.strictEqual(JSON.stringify(ev.map(e => e.total)), JSON.stringify([0, 0, 0, 500, 800, 700]));
+// metas: meses até o prazo (conta o mês atual)
+const nov26 = new Date(2026, 10, 24);
+assert.strictEqual(mesesAte('2026-11', nov26), 1);
+assert.strictEqual(mesesAte('2027-06', nov26), 8);
+assert.strictEqual(mesesAte('2026-10', nov26), 0);
+assert.strictEqual(mesesAte('lixo', nov26), 0);
+
+// metas: aporte necessário
+assert.strictEqual(aporteNecessario(1200, 0, 12, 0), 100);
+assert.strictEqual(aporteNecessario(1000, 1000, 5, 0.01), 0);
+assert.strictEqual(aporteNecessario(1000, 400, 0, 0.01), 600);
+const pmt = aporteNecessario(5000, 0, 8, anualParaMensal(13.75));
+assert.ok(pmt < 625 && pmt > 590, 'pmt com rendimento menor que sem: ' + pmt);
+// confere que o pmt realmente atinge o alvo
+let saldo = 0; const i = anualParaMensal(13.75);
+for (let k = 0; k < 8; k++) saldo = saldo * (1 + i) + pmt;
+assert.ok(Math.abs(saldo - 5000) < 0.01, 'saldo final ' + saldo);
+// guardado que rende sozinho até o alvo => 0
+assert.strictEqual(aporteNecessario(1010, 1000, 12, 0.01), 0);
+
+// metas: sugestão por prazo
+assert.ok(/Selic/.test(sugestaoParaMeta({ nome: 'Viagem' }, 6).titulo));
+assert.ok(/Selic/.test(sugestaoParaMeta({ nome: 'Reserva de emergência' }, 48).titulo));
+assert.ok(/CDB/.test(sugestaoParaMeta({ nome: 'Carro' }, 24).titulo));
+assert.ok(/IPCA/.test(sugestaoParaMeta({ nome: 'Casa' }, 60).titulo));
+
 console.log('OK: todos os testes de lógica passaram. Projeção 12m de R$100/mês =', proj[11].total.toFixed(2));
