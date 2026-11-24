@@ -58,15 +58,20 @@ create policy "leads_dono_le" on public.usuarios_leads
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.usuarios_leads (user_id, nome, whatsapp, email, privacidade_aceita_em)
-  values (
-    new.id,
-    new.raw_user_meta_data->>'display_name',
-    nullif(new.raw_user_meta_data->>'whatsapp', ''),
-    new.email,
-    (new.raw_user_meta_data->>'privacidade_aceita_em')::timestamptz
-  )
-  on conflict (user_id) do nothing;
+  begin
+    insert into public.usuarios_leads (user_id, nome, whatsapp, email, privacidade_aceita_em)
+    values (
+      new.id,
+      new.raw_user_meta_data->>'display_name',
+      nullif(new.raw_user_meta_data->>'whatsapp', ''),
+      new.email,
+      (new.raw_user_meta_data->>'privacidade_aceita_em')::timestamptz
+    )
+    on conflict (user_id) do nothing;
+  exception when others then
+    -- Nunca bloquear um cadastro por causa do lead: só registra o aviso.
+    raise warning 'handle_new_user: lead não gravado para %: %', new.id, sqlerrm;
+  end;
   return new;
 end; $$;
 
