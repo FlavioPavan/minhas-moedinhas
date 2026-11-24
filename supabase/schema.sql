@@ -25,6 +25,19 @@ create table if not exists public.transacoes (
 );
 create index if not exists transacoes_user_created_idx on public.transacoes (user_id, created_at desc);
 
+-- Metas ("quero juntar R$ X até tal mês")
+create table if not exists public.metas (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  nome         text not null check (char_length(nome) between 1 and 60),
+  valor_alvo   numeric(14,2) not null check (valor_alvo > 0),
+  prazo        date not null,
+  guardado     numeric(14,2) not null default 0 check (guardado >= 0),
+  concluida_em timestamptz,
+  created_at   timestamptz not null default now()
+);
+create index if not exists metas_user_idx on public.metas (user_id, created_at);
+
 -- Leads (nome/WhatsApp) com registro do aceite de privacidade (LGPD)
 create table if not exists public.usuarios_leads (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -40,6 +53,7 @@ alter table public.usuarios_leads alter column whatsapp drop not null; -- WhatsA
 alter table public.portfolios     enable row level security;
 alter table public.transacoes     enable row level security;
 alter table public.usuarios_leads enable row level security;
+alter table public.metas          enable row level security;
 
 do $$
 begin
@@ -49,6 +63,10 @@ begin
   end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='transacoes') then
     create policy "transacoes_dono" on public.transacoes
+      for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='metas') then
+    create policy "metas_dono" on public.metas
       for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
   end if;
   if not exists (select 1 from pg_policies where schemaname='public' and tablename='usuarios_leads') then

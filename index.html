@@ -137,22 +137,32 @@
           return {
             carteira: local.get('carteira', { aporte: null, perfil: 'moderado' }),
             transacoes: local.get('transacoes', []),
+            metas: local.get('metas', []),
           };
         },
         async salvarCarteira(aporte, perfil) { local.set('carteira', { aporte, perfil }); },
+        async salvarMeta(m) {
+          const meta = { id: m.id || uid(), created_at: m.created_at || new Date().toISOString(), ...m };
+          const lista = local.get('metas', []).filter(x => x.id !== meta.id);
+          local.set('metas', [...lista, meta]);
+          return meta;
+        },
+        async removerMeta(id) { local.set('metas', local.get('metas', []).filter(m => m.id !== id)); },
         async adicionarTransacao(t) {
           const nova = { id: uid(), created_at: new Date().toISOString(), ...t };
           local.set('transacoes', [nova, ...local.get('transacoes', [])]);
           return nova;
         },
         async removerTransacao(id) { local.set('transacoes', local.get('transacoes', []).filter(t => t.id !== id)); },
-        async apagarTudo() { local.remove('carteira'); local.remove('transacoes'); },
+        async apagarTudo() { local.remove('carteira'); local.remove('transacoes'); local.remove('metas'); },
       };
     }
 
     function criarRepoNuvem(userId) {
       const ok = ({ data, error }) => { if (error) throw error; return data; };
       const normalizar = (t) => ({ ...t, valor: Number(t.valor) });
+      const CAMPOS_META = 'id, nome, valor_alvo, prazo, guardado, concluida_em, created_at';
+      const metaDoBanco = (m) => ({ id: m.id, nome: m.nome, valorAlvo: Number(m.valor_alvo), prazo: String(m.prazo).slice(0, 7), guardado: Number(m.guardado), concluidaEm: m.concluida_em, created_at: m.created_at });
       return {
         modo: 'nuvem',
         async carregar() {
@@ -161,11 +171,21 @@
             sb.from('transacoes').select('id, descricao, valor, tipo, created_at').eq('user_id', userId).order('created_at', { ascending: false }),
           ]);
           const carteira = ok(port) || {};
+          // Metas são opcionais: se a tabela ainda não existir, o resto do app continua funcionando.
+          const metasRes = await sb.from('metas').select(CAMPOS_META).eq('user_id', userId).order('created_at');
+          if (metasRes.error) console.warn('[metas]', metasRes.error.message);
           return {
             carteira: { aporte: carteira.aporte != null ? Number(carteira.aporte) : null, perfil: carteira.perfil || 'moderado' },
             transacoes: (ok(trans) || []).map(normalizar),
+            metas: (metasRes.data || []).map(metaDoBanco),
           };
         },
+        async salvarMeta(m) {
+          const linha = { user_id: userId, nome: m.nome, valor_alvo: m.valorAlvo, prazo: m.prazo + '-01', guardado: m.guardado || 0, concluida_em: m.concluidaEm || null };
+          if (m.id) linha.id = m.id;
+          return metaDoBanco(ok(await sb.from('metas').upsert(linha).select(CAMPOS_META).single()));
+        },
+        async removerMeta(id) { ok(await sb.from('metas').delete().eq('id', id).eq('user_id', userId)); },
         async salvarCarteira(aporte, perfil) {
           ok(await sb.from('portfolios').upsert({ user_id: userId, aporte, perfil }, { onConflict: 'user_id' }));
         },
@@ -176,6 +196,8 @@
         async apagarTudo() {
           ok(await sb.from('transacoes').delete().eq('user_id', userId));
           ok(await sb.from('portfolios').delete().eq('user_id', userId));
+          const r = await sb.from('metas').delete().eq('user_id', userId);
+          if (r.error) console.warn('[metas]', r.error.message);
         },
       };
     }
@@ -184,13 +206,18 @@
     async function migrarVisitanteParaNuvem(repoNuvem) {
       const carteira = local.get('carteira', null);
       const transacoes = local.get('transacoes', []);
-      if (!(carteira && carteira.aporte) && transacoes.length === 0) return false;
+      const metas = local.get('metas', []);
+      if (!(carteira && carteira.aporte) && transacoes.length === 0 && metas.length === 0) return false;
       const atual = await repoNuvem.carregar();
       if (carteira && carteira.aporte && !atual.carteira.aporte) await repoNuvem.salvarCarteira(carteira.aporte, carteira.perfil || 'moderado');
       for (const t of [...transacoes].reverse()) {
         await repoNuvem.adicionarTransacao({ descricao: t.descricao, valor: t.valor, tipo: t.tipo });
       }
-      local.remove('carteira'); local.remove('transacoes');
+      for (const m of metas) {
+        const { id, created_at, ...resto } = m;
+        try { await repoNuvem.salvarMeta(resto); } catch (e) { console.warn('[metas] migração', e.message); return true; }
+      }
+      local.remove('carteira'); local.remove('transacoes'); local.remove('metas');
       return true;
     }
 
@@ -300,6 +327,37 @@
         pontos.push({ rotulo: MESES[d.getMonth()], ano: d.getFullYear(), total: saldo });
       }
       return pontos;
+    }
+
+    /* ════════ METAS ════════ */
+    const mesAtualISO = (hoje = new Date()) => `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    const rotuloMes = (iso) => { const [a, m] = iso.split('-').map(Number); return MESES[m - 1] + '/' + a; };
+
+    /** Meses de depósito até o prazo, contando o mês atual. Prazo "2027-06" = até o fim de junho/2027. 0 = vencida. */
+    function mesesAte(prazoISO, hoje = new Date()) {
+      const [a, m] = String(prazoISO).split('-').map(Number);
+      if (!a || !m) return 0;
+      const dif = (a * 12 + (m - 1)) - (hoje.getFullYear() * 12 + hoje.getMonth());
+      return dif < 0 ? 0 : dif + 1;
+    }
+
+    /** Quanto depositar por mês para chegar ao alvo, com o dinheiro rendendo à taxa mensal i (0 = sem render). */
+    function aporteNecessario(alvo, guardado, meses, i = 0) {
+      const falta = alvo - guardado;
+      if (falta <= 0) return 0;
+      if (meses <= 0) return falta;
+      if (!(i > 0)) return falta / meses;
+      const fator = Math.pow(1 + i, meses);
+      const restante = alvo - guardado * fator;
+      if (restante <= 0) return 0;
+      return restante * i / (fator - 1);
+    }
+
+    /** Sugestão educativa de onde estudar para guardar o dinheiro, conforme o prazo. */
+    function sugestaoParaMeta(meta, meses) {
+      if (/reserva|emerg/i.test(meta.nome) || meses <= 12) return { titulo: 'Tesouro Selic ou CDB com liquidez diária', porque: 'prazo curto pede segurança e resgate rápido' };
+      if (meses <= 36) return { titulo: 'CDB, LCI ou LCA com vencimento próximo do prazo', porque: 'rendem mais que a poupança e têm proteção do FGC' };
+      return { titulo: 'Tesouro IPCA+', porque: 'protege da inflação em prazos longos' };
     }
 
     /* ════════ COMPONENTES ATÔMICOS ════════ */
@@ -500,18 +558,129 @@
       </aside>`;
     }
 
-    function Conquistas({ temAporte, perfilDefinido, temLancamento, poupador }) {
+    function Conquistas({ temAporte, perfilDefinido, temLancamento, poupador, temMeta, metaBatida }) {
       const badges = [
         { emoji: '🪙', label: 'Primeira simulação', on: temAporte },
         { emoji: '🧠', label: 'Perfil definido', on: perfilDefinido },
         { emoji: '📒', label: 'Primeiro registro', on: temLancamento },
         { emoji: '🚀', label: 'Saldo positivo', on: poupador },
+        { emoji: '🎯', label: 'Primeira meta', on: temMeta },
+        { emoji: '🏆', label: 'Meta batida', on: metaBatida },
       ];
       const feitas = badges.filter(b => b.on).length;
       return html`<section aria-labelledby="conq-titulo" class="bg-[#1a2233] p-3 rounded-2xl border border-slate-800 shadow-xl">
         <div class="flex justify-between items-center px-2"><h2 id="conq-titulo" class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Minhas conquistas</h2><span class="text-[11px] text-slate-400">${feitas}/${badges.length}</span></div>
-        <ul class="flex justify-around mt-2">${badges.map(b => html`<li key=${b.label} class=${'flex flex-col items-center gap-1 ' + (b.on ? 'badge-on' : 'badge-off')}><span class="text-2xl" aria-hidden="true">${b.emoji}</span><span class="text-[10px] text-slate-300 font-medium text-center">${b.label}</span><span class="sr-only">${b.on ? 'conquistada' : 'ainda não conquistada'}</span></li>`)}</ul>
+        <ul class="grid grid-cols-3 sm:grid-cols-6 gap-y-3 mt-2">${badges.map(b => html`<li key=${b.label} class=${'flex flex-col items-center gap-1 ' + (b.on ? 'badge-on' : 'badge-off')}><span class="text-2xl" aria-hidden="true">${b.emoji}</span><span class="text-[10px] text-slate-300 font-medium text-center">${b.label}</span><span class="sr-only">${b.on ? 'conquistada' : 'ainda não conquistada'}</span></li>`)}</ul>
       </section>`;
+    }
+
+    function MetaItem({ meta, ind, mostrar, onDepositar, onRemover }) {
+      const meses = mesesAte(meta.prazo);
+      const pct = Math.min(100, meta.valorAlvo > 0 ? (meta.guardado / meta.valorAlvo) * 100 : 0);
+      const batida = meta.guardado >= meta.valorAlvo;
+      const comRend = aporteNecessario(meta.valorAlvo, meta.guardado, meses, anualParaMensal(ind.selic));
+      const semRend = aporteNecessario(meta.valorAlvo, meta.guardado, meses, 0);
+      const dica = sugestaoParaMeta(meta, meses);
+      return html`<li class=${'bg-[#0d1117]/70 p-4 rounded-xl border space-y-3 ' + (batida ? 'border-amber-400/50' : 'border-slate-800')}>
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-slate-100 truncate">${batida ? '🏆 ' : '🎯 '}${meta.nome}</p>
+            <p class="text-[11px] text-slate-400">${batida ? 'Meta batida! Parabéns 🎉' : meses === 0 ? `Prazo encerrado em ${rotuloMes(meta.prazo)}` : `Até ${rotuloMes(meta.prazo)} · ${meses} ${meses === 1 ? 'mês' : 'meses'}`}</p>
+          </div>
+          <button onClick=${() => onRemover(meta)} aria-label=${'Remover meta ' + meta.nome} class="text-slate-500 hover:text-red-300 p-1.5 rounded-lg flex-shrink-0"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <div>
+          <div class="flex justify-between text-[11px] mb-1"><span class="text-slate-300"><${Valor} v=${meta.guardado} mostrar=${mostrar} /> de <${Valor} v=${meta.valorAlvo} mostrar=${mostrar} /></span><span class="font-bold text-[#34d399]">${Math.floor(pct)}%</span></div>
+          <div class="h-2 bg-slate-800 rounded-full overflow-hidden" role="progressbar" aria-label=${'Progresso da meta ' + meta.nome} aria-valuenow=${Math.floor(pct)} aria-valuemin="0" aria-valuemax="100"><div class=${'h-full rounded-full progress-fill ' + (batida ? 'bg-amber-400' : 'bg-[#34d399]')} style=${{ width: pct + '%' }}></div></div>
+        </div>
+        ${!batida && meses > 0 && comRend <= 0 ? html`<div class="bg-[#1a2233] rounded-lg p-3"><p class="text-xs text-slate-200">🎉 O que você já guardou chega lá sozinho se ficar rendendo a Selic até o prazo. É só deixar aplicado.</p></div>` : null}
+        ${!batida && meses > 0 && comRend > 0 ? html`<div class="bg-[#1a2233] rounded-lg p-3 space-y-1">
+          <p class="text-xs text-slate-200">Guarde <strong class="text-[#34d399]"><${Valor} v=${comRend} mostrar=${mostrar} /> por mês</strong> rendendo a Selic (${fmtPct(ind.selic)} a.a.)</p>
+          <p class="text-[11px] text-slate-400">Sem render nada, seriam <${Valor} v=${semRend} mostrar=${mostrar} /> por mês.</p>
+        </div>` : null}
+        ${!batida ? html`<p class="text-[11px] text-slate-400">💡 Para este prazo, estude: <strong class="text-slate-200">${dica.titulo}</strong> (${dica.porque}). <a href=${CONFIG.parceiro.url} target="_blank" rel="noopener noreferrer sponsored" class="text-[#34d399] underline underline-offset-2">Onde encontrar?</a> <span class="text-slate-500">(link de parceiro)</span></p>` : null}
+        <button onClick=${() => onDepositar(meta)} class="btn w-full py-2 rounded-xl text-xs font-bold border border-[#34d399]/50 text-[#34d399] hover:bg-[#34d399]/10">+ Registrar depósito</button>
+      </li>`;
+    }
+
+    function Metas({ metas, ind, mostrar, onNova, onDepositar, onRemover }) {
+      return html`<section aria-labelledby="metas-titulo" class="bg-[#1a2233] p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2"><span class="text-lg" aria-hidden="true">🎯</span><h2 id="metas-titulo" class="text-xs font-semibold text-[#a5b4fc] uppercase tracking-wider">Minhas metas</h2></div>
+          ${metas.length ? html`<button onClick=${() => onNova()} class="btn flex items-center gap-1.5 bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs">+ Nova meta</button>` : null}
+        </div>
+        ${metas.length === 0
+          ? html`<div class="text-center space-y-3 py-2">
+              <p class="text-sm text-slate-300">Para que você está juntando? Crie uma meta e eu calculo quanto guardar por mês.</p>
+              <div class="flex flex-wrap justify-center gap-2">${[['🛟', 'Reserva de emergência'], ['✈️', 'Viagem'], ['📱', 'Celular novo'], ['🏠', 'Entrada do imóvel']].map(([e, n]) => html`<button key=${n} onClick=${() => onNova(n)} class="btn text-xs text-slate-200 border border-slate-700 hover:border-[#34d399]/60 rounded-full px-3 py-1.5"><span aria-hidden="true">${e}</span> ${n}</button>`)}</div>
+              <button onClick=${() => onNova()} class="btn bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-2.5 px-5 rounded-xl text-sm">Criar minha primeira meta</button>
+            </div>`
+          : html`<ul class="space-y-3">${metas.map(m => html`<${MetaItem} key=${m.id} meta=${m} ind=${ind} mostrar=${mostrar} onDepositar=${onDepositar} onRemover=${onRemover} />`)}</ul>`}
+      </section>`;
+    }
+
+    function NovaMeta({ nomeInicial = '', onSalvar, onClose }) {
+      const [nome, setNome] = useState(nomeInicial), [valor, setValor] = useState(''), [prazo, setPrazo] = useState(''), [guardado, setGuardado] = useState('');
+      const [erro, setErro] = useState(''), [salvando, setSalvando] = useState(false);
+      const minimo = mesAtualISO();
+      async function enviar(e) {
+        e.preventDefault();
+        const alvo = parseValor(valor), ja = guardado.trim() ? parseValor(guardado) : 0;
+        if (!nome.trim()) return setErro('Dê um nome para a meta.');
+        if (!Number.isFinite(alvo) || alvo <= 0) return setErro('Informe quanto você quer juntar.');
+        if (!/^\d{4}-\d{2}$/.test(prazo) || prazo < minimo) return setErro('Escolha um prazo a partir deste mês.');
+        if (!Number.isFinite(ja) || ja < 0) return setErro('O valor já guardado precisa ser zero ou mais.');
+        setSalvando(true);
+        const ok = await onSalvar({ nome: nome.trim().slice(0, 60), valorAlvo: alvo, prazo, guardado: ja });
+        setSalvando(false);
+        if (ok) onClose();
+      }
+      const campo = 'field w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-500 text-base';
+      return html`<${Modal} titulo="Nova meta" onClose=${onClose}>
+        <form onSubmit=${enviar} class="space-y-3" noValidate>
+          <div class="space-y-1"><label htmlFor="m-nome" class="text-[11px] text-slate-400 font-semibold uppercase">Para que é?</label><input id="m-nome" type="text" maxLength="60" value=${nome} onChange=${e => { setNome(e.target.value); setErro(''); }} placeholder="Ex.: Viagem para a praia" class=${campo} /></div>
+          <div class="space-y-1"><label htmlFor="m-valor" class="text-[11px] text-slate-400 font-semibold uppercase">Quanto quer juntar? (R$)</label><input id="m-valor" type="text" inputMode="decimal" value=${valor} onChange=${e => { setValor(e.target.value); setErro(''); }} placeholder="5.000,00" class=${campo} /></div>
+          <div class="space-y-1"><label htmlFor="m-prazo" class="text-[11px] text-slate-400 font-semibold uppercase">Até quando?</label><input id="m-prazo" type="month" min=${minimo} value=${prazo} onChange=${e => { setPrazo(e.target.value); setErro(''); }} class=${campo + ' [color-scheme:dark]'} /></div>
+          <div class="space-y-1"><label htmlFor="m-guardado" class="text-[11px] text-slate-400 font-semibold uppercase">Já tem algo guardado? (opcional)</label><input id="m-guardado" type="text" inputMode="decimal" value=${guardado} onChange=${e => { setGuardado(e.target.value); setErro(''); }} placeholder="0,00" class=${campo} /></div>
+          ${erro ? html`<p role="alert" class="text-xs text-red-300">${erro}</p>` : null}
+          <button type="submit" disabled=${salvando} class="btn w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-3 rounded-xl text-sm disabled:opacity-60">${salvando ? 'Salvando…' : 'Criar meta'}</button>
+        </form>
+      <//>`;
+    }
+
+    function DepositoMeta({ meta, sugestao, onSalvar, onClose }) {
+      const [valor, setValor] = useState(sugestao > 0 ? (Math.ceil(sugestao * 100) / 100).toFixed(2).replace('.', ',') : '');
+      const [registrar, setRegistrar] = useState(true);
+      const [erro, setErro] = useState(''), [salvando, setSalvando] = useState(false);
+      async function enviar(e) {
+        e.preventDefault();
+        const v = parseValor(valor);
+        if (!Number.isFinite(v) || v <= 0) return setErro('Informe um valor maior que zero.');
+        setSalvando(true);
+        const ok = await onSalvar(meta, v, registrar);
+        setSalvando(false);
+        if (ok) onClose();
+      }
+      return html`<${Modal} titulo=${'Depósito · ' + meta.nome} onClose=${onClose}>
+        <form onSubmit=${enviar} class="space-y-3" noValidate>
+          <div class="space-y-1"><label htmlFor="d-valor" class="text-[11px] text-slate-400 font-semibold uppercase">Quanto você guardou? (R$)</label><input id="d-valor" type="text" inputMode="decimal" value=${valor} onChange=${e => { setValor(e.target.value); setErro(''); }} placeholder="0,00" class="field w-full px-4 py-3 bg-[#0d1117] rounded-xl border border-slate-700 text-slate-100 placeholder-slate-500 text-base" /></div>
+          <label class="flex items-start gap-2 text-xs text-slate-300"><input type="checkbox" checked=${registrar} onChange=${e => setRegistrar(e.target.checked)} class="mt-0.5 w-4 h-4 accent-[#34d399]" /><span>Registrar também como entrada no gerenciador de moedinhas</span></label>
+          ${erro ? html`<p role="alert" class="text-xs text-red-300">${erro}</p>` : null}
+          <button type="submit" disabled=${salvando} class="btn w-full bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 font-bold py-3 rounded-xl text-sm disabled:opacity-60">${salvando ? 'Salvando…' : 'Registrar depósito'}</button>
+        </form>
+      <//>`;
+    }
+
+    /** Lembrete do mês: aparece quando há meta em andamento e nenhuma entrada registrada no mês. */
+    function LembreteMensal({ meta, valorMes, mostrar, onDepositar, onDispensar }) {
+      const mes = MESES[new Date().getMonth()];
+      return html`<aside role="status" class="banner-glow rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 fade-up">
+        <p class="text-sm text-slate-100 flex-1"><span aria-hidden="true">🪙</span> Já guardou suas moedinhas de ${mes}? Para a meta <strong>${meta.nome}</strong>, o ideal é <strong class="text-[#34d399]"><${Valor} v=${valorMes} mostrar=${mostrar} /></strong> este mês.</p>
+        <div class="flex gap-2 flex-shrink-0">
+          <button onClick=${onDispensar} class="btn text-xs text-slate-300 px-3 py-2 rounded-xl border border-slate-700">Depois</button>
+          <button onClick=${() => onDepositar(meta)} class="btn text-xs font-bold bg-[#34d399] hover:bg-[#6ee7b7] text-slate-950 px-3 py-2 rounded-xl">Já guardei</button>
+        </div>
+      </aside>`;
     }
 
     function Gerenciador({ transacoes, mostrar, onNovo, onRemover }) {
@@ -620,7 +789,7 @@
         <div class="text-sm text-slate-300 space-y-3 leading-relaxed">
           <p><strong class="text-slate-100">Seus dados financeiros pertencem a você.</strong> O Minhas Moedinhas não vende, aluga nem compartilha seus dados com terceiros.</p>
           <p><strong class="text-slate-100">Sem conta:</strong> tudo fica salvo apenas neste navegador (localStorage). Nada é enviado para nossos servidores.</p>
-          <p><strong class="text-slate-100">Com conta:</strong> guardamos nome, e-mail, WhatsApp (se informado), sua simulação e seus lançamentos em servidor seguro (Supabase), protegidos para que só você acesse.</p>
+          <p><strong class="text-slate-100">Com conta:</strong> guardamos nome, e-mail, WhatsApp (se informado), sua simulação, seus lançamentos e suas metas em servidor seguro (Supabase), protegidos para que só você acesse.</p>
           <p><strong class="text-slate-100">Indicadores:</strong> Selic, CDI e IPCA vêm da API pública do Banco Central; nenhuma informação sua é enviada a ela.</p>
           <p><strong class="text-slate-100">Seus direitos (LGPD):</strong> você pode apagar seus dados a qualquer momento pelo botão abaixo. Para excluir a conta de login por completo, fale com a gente pelos canais oficiais.</p>
         </div>
@@ -655,7 +824,8 @@
     function App() {
       const [user, setUser] = useState(null);
       const [authPronto, setAuthPronto] = useState(!sb);
-      const [dados, setDados] = useState({ carteira: { aporte: null, perfil: 'moderado' }, transacoes: [] });
+      const [dados, setDados] = useState({ carteira: { aporte: null, perfil: 'moderado' }, transacoes: [], metas: [] });
+      const [lembreteDispensado, setLembreteDispensado] = useState(() => local.get('lembrete:' + mesAtualISO(), false));
       const [carregando, setCarregando] = useState(true);
       const [salvando, setSalvando] = useState(false);
       const [mostrar, setMostrar] = useState(() => local.get('mostrarValores', true));
@@ -683,7 +853,7 @@
           try {
             if (repo.modo === 'nuvem' && await migrarVisitanteParaNuvem(repo)) notificar('Levamos para sua conta o que você tinha registrado neste aparelho.');
             const d = await repo.carregar();
-            if (ativo) setDados({ ...d, carteira: { ...d.carteira, perfil: PERFIS[d.carteira.perfil] ? d.carteira.perfil : 'moderado' } });
+            if (ativo) setDados({ metas: [], ...d, carteira: { ...d.carteira, perfil: PERFIS[d.carteira.perfil] ? d.carteira.perfil : 'moderado' } });
           } catch (err) {
             console.error('[dados]', err);
             notificar('Não foi possível carregar seus dados da nuvem. ' + traduzirErro(err.message), 'erro');
@@ -722,18 +892,53 @@
         try {
           await repo.apagarTudo();
           local.remove('perfilDefinido'); setPerfilDefinido(false);
-          setDados({ carteira: { aporte: null, perfil: 'moderado' }, transacoes: [] });
+          setDados({ carteira: { aporte: null, perfil: 'moderado' }, transacoes: [], metas: [] });
           notificar('Seus dados foram apagados.');
         } catch (err) { notificar('Erro ao apagar: ' + traduzirErro(err.message), 'erro'); }
       }
+      async function onSalvarMeta(m) {
+        try {
+          const meta = await repo.salvarMeta(m);
+          setDados(d => ({ ...d, metas: [...d.metas.filter(x => x.id !== meta.id), meta] }));
+          notificar('Meta criada! 🎯');
+          return true;
+        } catch (err) { notificar('Erro ao salvar a meta: ' + traduzirErro(err.message), 'erro'); return false; }
+      }
+      async function onDepositarMeta(meta, valor, registrar) {
+        const guardado = Math.round((meta.guardado + valor) * 100) / 100;
+        const batidaAgora = guardado >= meta.valorAlvo && meta.guardado < meta.valorAlvo;
+        try {
+          const atualizada = await repo.salvarMeta({ ...meta, guardado, concluidaEm: batidaAgora ? new Date().toISOString() : meta.concluidaEm || null });
+          setDados(d => ({ ...d, metas: d.metas.map(x => (x.id === meta.id ? atualizada : x)) }));
+          if (registrar) {
+            const t = await repo.adicionarTransacao({ descricao: ('Meta: ' + meta.nome).slice(0, 80), valor, tipo: 'entrada' });
+            setDados(d => ({ ...d, transacoes: [t, ...d.transacoes] }));
+          }
+          notificar(batidaAgora ? `🏆 Você bateu a meta “${meta.nome}”! Parabéns!` : 'Depósito registrado! Continue assim 💪');
+          return true;
+        } catch (err) { notificar('Erro ao registrar: ' + traduzirErro(err.message), 'erro'); return false; }
+      }
+      async function onRemoverMeta(meta) {
+        const antes = dados.metas;
+        setDados(d => ({ ...d, metas: d.metas.filter(x => x.id !== meta.id) }));
+        try { await repo.removerMeta(meta.id); notificar('Meta removida.'); }
+        catch (err) { setDados(d => ({ ...d, metas: antes })); notificar('Erro ao remover: ' + traduzirErro(err.message), 'erro'); }
+      }
+      function dispensarLembrete() { local.set('lembrete:' + mesAtualISO(), true); setLembreteDispensado(true); }
+
       async function sair() { try { await sb?.auth.signOut(); notificar('Você saiu da conta. Este aparelho volta ao modo sem login.'); } catch {} }
 
       if (!authPronto || carregando) {
         return html`<div class="min-h-screen flex items-center justify-center gap-3 bg-[#0d1117]" role="status"><${Spinner} size="w-7 h-7" /><p class="text-sm text-slate-400">Carregando suas moedinhas…</p></div>`;
       }
 
-      const { carteira, transacoes } = dados;
+      const { carteira, transacoes, metas } = dados;
       const saldo = transacoes.reduce((a, t) => a + (t.tipo === 'entrada' ? t.valor : -t.valor), 0);
+      const metasAtivas = metas.filter(m => m.guardado < m.valorAlvo && mesesAte(m.prazo) > 0);
+      const mesAtual = mesAtualISO();
+      const entrouEsteMes = transacoes.some(t => t.tipo === 'entrada' && String(t.created_at).slice(0, 7) === mesAtual);
+      const metaDoLembrete = !lembreteDispensado && !entrouEsteMes && metasAtivas.length ? metasAtivas[0] : null;
+      const valorMesDe = (m) => aporteNecessario(m.valorAlvo, m.guardado, mesesAte(m.prazo), anualParaMensal(ind.selic));
       const nome = (user?.user_metadata?.display_name || user?.email || '').split(/[\s@]/)[0];
 
       return html`
@@ -756,12 +961,14 @@
           </header>
 
           <main id="conteudo" class="flex flex-col gap-5">
+            ${metaDoLembrete ? html`<${LembreteMensal} meta=${metaDoLembrete} valorMes=${valorMesDe(metaDoLembrete)} mostrar=${mostrar} onDepositar=${(m) => setModal({ depositar: m })} onDispensar=${dispensarLembrete} />` : null}
             <div class="grid gap-5 sm:grid-cols-2 sm:items-start">
               <${Simulador} aporte=${carteira.aporte} perfil=${carteira.perfil} ind=${ind} mostrar=${mostrar} salvando=${salvando} onSimular=${onSimular} onPerfil=${onPerfil} />
               <${GraficoCard} aporte=${carteira.aporte} perfil=${carteira.perfil} ind=${ind} transacoes=${transacoes} mostrar=${mostrar} />
             </div>
+            <${Metas} metas=${metas} ind=${ind} mostrar=${mostrar} onNova=${(nome) => setModal({ novaMeta: nome || '' })} onDepositar=${(m) => setModal({ depositar: m })} onRemover=${(m) => setModal({ removerMeta: m })} />
             <${Gerenciador} transacoes=${transacoes} mostrar=${mostrar} onNovo=${() => setModal('lancamento')} onRemover=${(t) => setModal({ remover: t })} />
-            <${Conquistas} temAporte=${!!carteira.aporte} perfilDefinido=${perfilDefinido} temLancamento=${transacoes.length > 0} poupador=${saldo > 0} />
+            <${Conquistas} temAporte=${!!carteira.aporte} perfilDefinido=${perfilDefinido} temLancamento=${transacoes.length > 0} poupador=${saldo > 0} temMeta=${metas.length > 0} metaBatida=${metas.some(m => m.guardado >= m.valorAlvo)} />
             <${ParaEstudar} perfil=${carteira.perfil} />
             <${BannerParceiro} />
           </main>
@@ -776,13 +983,19 @@
             <p class="text-sm text-slate-300">“${modal.remover.descricao}” · ${fmtBRL(modal.remover.valor)}</p>
             <div class="flex gap-2"><button onClick=${() => setModal(null)} class="btn flex-1 py-2.5 rounded-xl border border-slate-600 text-sm text-slate-200">Cancelar</button><button onClick=${() => { const t = modal.remover; setModal(null); onRemover(t); }} class="btn flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-sm font-bold text-white">Remover</button></div>
           <//>` : null}
+        ${modal && modal.novaMeta !== undefined ? html`<${NovaMeta} nomeInicial=${modal.novaMeta} onSalvar=${onSalvarMeta} onClose=${() => setModal(null)} />` : null}
+        ${modal && modal.depositar ? html`<${DepositoMeta} meta=${modal.depositar} sugestao=${valorMesDe(modal.depositar)} onSalvar=${onDepositarMeta} onClose=${() => setModal(null)} />` : null}
+        ${modal && modal.removerMeta ? html`<${Modal} titulo="Remover meta?" onClose=${() => setModal(null)}>
+            <p class="text-sm text-slate-300">“${modal.removerMeta.nome}”. Os lançamentos já registrados no gerenciador continuam lá.</p>
+            <div class="flex gap-2"><button onClick=${() => setModal(null)} class="btn flex-1 py-2.5 rounded-xl border border-slate-600 text-sm text-slate-200">Cancelar</button><button onClick=${() => { const m = modal.removerMeta; setModal(null); onRemoverMeta(m); }} class="btn flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-400 text-sm font-bold text-white">Remover</button></div>
+          <//>` : null}
         ${onboarding && !modal ? html`<${OnboardingModal} onComplete=${() => { local.set('onboardingVisto', true); setOnboarding(false); }} />` : null}
         <${Toast} toast=${toast} onClose=${() => setToast(null)} />
       `;
     }
 
     /* Exposto para testes automatizados (sem efeito no app). */
-    window.__MM__ = { parseValor, projetarAportes, evolucaoPatrimonio, anualParaMensal, PERFIS };
+    window.__MM__ = { parseValor, projetarAportes, evolucaoPatrimonio, anualParaMensal, mesesAte, aporteNecessario, sugestaoParaMeta, PERFIS };
 
     ReactDOM.createRoot(document.getElementById('root')).render(html`<${App} />`);
 
