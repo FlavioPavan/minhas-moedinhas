@@ -1,16 +1,17 @@
 -- ════════════════════════════════════════════════════════════════
 -- Minhas Moedinhas · schema + segurança (RLS) do Supabase
--- Rode no Supabase > SQL Editor. É idempotente: pode rodar de novo.
--- A chave "publishable" fica no front-end; quem protege os dados
--- são estas políticas: cada usuário só enxerga as próprias linhas.
+-- Idempotente: pode rodar de novo sem efeito colateral.
+-- Compatível com o banco existente (portfolios e usuarios_leads já
+-- criados pelo app antigo): só cria o que falta e nunca apaga dados.
 -- ════════════════════════════════════════════════════════════════
 
--- Carteira simulada (1 por usuário)
+-- Carteira simulada (1 por usuário) — criada só se ainda não existir
 create table if not exists public.portfolios (
-  user_id    uuid primary key references auth.users(id) on delete cascade,
-  aporte     numeric(14,2) check (aporte is null or aporte > 0),
-  perfil     text not null default 'moderado' check (perfil in ('conservador','moderado','arrojado')),
-  updated_at timestamptz not null default now()
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null unique references auth.users(id) on delete cascade,
+  aporte     numeric,
+  perfil     text default 'moderado',
+  updated_at timestamptz default now()
 );
 
 -- Lançamentos do gerenciador de moedinhas
@@ -27,34 +28,38 @@ create index if not exists transacoes_user_created_idx on public.transacoes (use
 -- Leads (nome/WhatsApp) com registro do aceite de privacidade (LGPD)
 create table if not exists public.usuarios_leads (
   user_id    uuid primary key references auth.users(id) on delete cascade,
-  nome       text,
+  nome       text not null,
   whatsapp   text,
-  email      text,
-  privacidade_aceita_em timestamptz,
-  created_at timestamptz not null default now()
+  email      text not null,
+  created_at timestamptz default now()
 );
 alter table public.usuarios_leads add column if not exists privacidade_aceita_em timestamptz;
+alter table public.usuarios_leads alter column whatsapp drop not null; -- WhatsApp agora é opcional
 
--- ── Row Level Security ──────────────────────────────────────────
+-- ── Row Level Security: cada usuário só acessa as próprias linhas ──
 alter table public.portfolios     enable row level security;
 alter table public.transacoes     enable row level security;
 alter table public.usuarios_leads enable row level security;
 
-drop policy if exists "portfolios_dono" on public.portfolios;
-create policy "portfolios_dono" on public.portfolios
-  for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-drop policy if exists "transacoes_dono" on public.transacoes;
-create policy "transacoes_dono" on public.transacoes
-  for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-drop policy if exists "leads_dono_le" on public.usuarios_leads;
-create policy "leads_dono_le" on public.usuarios_leads
-  for select to authenticated using (auth.uid() = user_id);
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='portfolios') then
+    create policy "portfolios_dono" on public.portfolios
+      for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='transacoes') then
+    create policy "transacoes_dono" on public.transacoes
+      for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='usuarios_leads') then
+    create policy "leads_dono_le" on public.usuarios_leads
+      for select to authenticated using (auth.uid() = user_id);
+  end if;
+end $$;
 
 -- ── Lead criado no servidor no momento do cadastro ──────────────
--- Antes o app tentava gravar o lead pelo navegador logo após o signUp,
--- o que falha com RLS quando a confirmação de e-mail está ligada (ainda não há sessão).
+-- Antes o app gravava o lead pelo navegador logo após o signUp, o que
+-- falha com RLS quando a confirmação de e-mail está ligada (sem sessão).
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -62,7 +67,7 @@ begin
     insert into public.usuarios_leads (user_id, nome, whatsapp, email, privacidade_aceita_em)
     values (
       new.id,
-      new.raw_user_meta_data->>'display_name',
+      coalesce(nullif(new.raw_user_meta_data->>'display_name', ''), split_part(new.email, '@', 1)),
       nullif(new.raw_user_meta_data->>'whatsapp', ''),
       new.email,
       (new.raw_user_meta_data->>'privacidade_aceita_em')::timestamptz
@@ -78,6 +83,16 @@ end; $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Recupera leads de quem se cadastrou quando o bug impedia a gravação
+insert into public.usuarios_leads (user_id, nome, whatsapp, email)
+select u.id,
+       coalesce(nullif(u.raw_user_meta_data->>'display_name', ''), split_part(u.email, '@', 1)),
+       nullif(u.raw_user_meta_data->>'whatsapp', ''),
+       u.email
+from auth.users u
+where u.email is not null
+on conflict (user_id) do nothing;
 
 -- Mantém updated_at da carteira
 create or replace function public.touch_updated_at()
